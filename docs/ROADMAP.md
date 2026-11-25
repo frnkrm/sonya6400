@@ -24,7 +24,7 @@ Stand 25. November 2026. Die Pläne ordnen jede Anforderung ihrer Abnahme zu. Er
 | C-07, C-08 | Softwaretests und Nachweise für Git und Produktion | [Projektstand](STATUS.md) |
 | H-01 bis H-10 | Erkennung, tatsächliche Schreibbarkeit, Persistenz, MR und ergänzende Möglichkeiten an einer α6400 | [Offenes Hardwareprotokoll](plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll) |
 
-Die native Windows-App und das Display der α6400 zeigten im Gerätetest übereinstimmend feste ISO 400. Nach dem einzelnen WPD-Schritt von 400 auf 500 zeigte das Display ISO 500, die sofortige Rücklesung von v9 noch ISO 400. Die separate Windows-Lesung bestätigte ISO 500. Als Nächstes steht die automatische Bestätigung mit v10 am Gerät an. Für den separaten WSL-Weg ist am getesteten Setup der Timeout bei PTP OpenSession reproduziert. Profilübertragung und Persistenz bleiben eigenständige Hardwarefälle. [Anleitung für den nativen Einzelschritt](WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
+Die native Windows-App und das Display der α6400 zeigten im Gerätetest übereinstimmend feste ISO 400. Nach dem einzelnen WPD-Schritt von 400 auf 500 zeigte das Display ISO 500, die sofortige Rücklesung von v9 noch ISO 400. Die separate Windows-Lesung bestätigte ISO 500. Mit v10 stimmten die automatische Rücklesung und die Anzeige der α6400 nach dem ISO-Schritt auf 500 überein. Für H-02 stehen noch die Geräteprüfungen für Blende und Belichtungszeit aus. Für den separaten WSL-Weg ist am getesteten Setup der Timeout bei PTP OpenSession reproduziert. Profilübertragung und Persistenz bleiben eigenständige Hardwarefälle. [Anleitung für den nativen Einzelschritt](WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
 
 ## Ideenparkplatz
 
