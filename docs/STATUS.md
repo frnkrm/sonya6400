@@ -36,6 +36,16 @@ Die elf Kameraregeltests prüfen unter anderem 864 ältere Auswahlkombinationen 
 - Die drei internen Kameraspeicher und die zusätzlichen Kartenplätze entsprechen der [Sony-Hilfe](https://helpguide.sony.net/ilc/1810/v1/de/contents/TP0002242297.html).
 - Die Projektlizenz ist offen.
 
+## Geplante Kameraanbindung
+
+Die [Verbindungsrecherche](research/sony-a6400-verbindung-und-presettransfer.md) vom 25. November 2026 dokumentiert Sony-Fernsteuerung, NFC, USB, Community-Anwendungen sowie Grenzen vollständiger Profile und von Firmware-Erweiterungen. Quellenbelege und Anbieterangaben ersetzen keine eigene Kameraabnahme.
+
+- **Vorhandene App:** Empfehlungen und Aufnahmehilfen; keine echte Kameraverbindung oder Übertragung.
+- **Plan 003 / C-01 bis C-08:** Zur Entwicklung aufgenommen; Software noch nicht implementiert. Einstieg sind ISO, Blende und Zeit über einen lokalen USB-Adapter mit Rücklesung.
+- **Hardware H-01 bis H-10:** Offen. Keine Kamera verbunden; Persistenz nach Trennen/Neustart und MR-Übernahme nicht bestätigt.
+- **Codex-Unterlagen:** [Plan 003](plans/003-kameraverbindung-und-presettransfer.md), [Architekturergänzung](ARCHITECTURE.md#geplante-optionale-kameraanbindung) und [autonomer Arbeitsauftrag](CODEX-AUFTRAG.md) vorhanden.
+- **Diese Ergänzung:** Dokumentation; die oben genannten Ergebnisse des bestehenden Funktionsstands bleiben erhalten. Es wurden dadurch keine neuen App-, Kamera- oder Produktionsprüfungen durchgeführt.
+
 ## Veröffentlichung
 
 Am 25. November 2026 nahm GitHub den Push des geprüften Funktionsstands und seiner Dokumentation an. Ein anschließendes `git ls-remote origin refs/heads/main` bestätigte den [Stand cb45331](https://github.com/frnkrm/sonya6400/commit/cb4533190ffdf0eebfc95df0d23d61bd47c3e39d) auf `main`. Die Produktionsprüfung für OPS-01 ist offen. Beim Abruf der Produktionsdomain antwortete der Cloud-Proxy mit HTTP 403 auf CONNECT. Auch der Netlify-Status am GitHub-Commit war über die API aus dieser Umgebung gesperrt. Eine erfolgreiche Veröffentlichung auf Netlify muss anhand des zugehörigen Deploys und der Live-Fassung bestätigt werden. [Produktionsseite](https://sonyalpha6400.frnkrm.com/)

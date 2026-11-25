@@ -71,6 +71,19 @@ Bestehende Schlüssel für `localStorage` und das Linkformat `#s=motiv.licht.bew
 
 Neue Objektivdaten gegen die Regelberechnung prüfen. Kameramenüs und fotografische Aussagen anhand passender Herstellerquellen kontrollieren; die vorhandenen Texte sind keine unabhängige fachliche Verifikation.
 
+## Nächster Codex-Lauf: Kameraverbindung
+
+Der [vollständige Codex-Auftrag](CODEX-AUFTRAG.md) verweist auf [Plan 003](plans/003-kameraverbindung-und-presettransfer.md) und die [Verbindungsrecherche](research/sony-a6400-verbindung-und-presettransfer.md). Der aktuelle Stand enthält die bereits abgenommenen Pläne 001 und 002; diese nicht erneut implementieren.
+
+1. Den aktuellen Remote-Stand und betroffene Module prüfen. Bestehende Quellen und Tests gezielt wiederverwenden.
+2. Profilsemantik, Fähigkeiten und Übertragungslogik mit erkennbarer Simulation aufbauen; anschließend einen echten ausführbaren USB-Adapter ergänzen. Keine bloße Simulation als fertige Kameraverbindung ausweisen.
+3. ISO, Blende und Zeit anhand tatsächlicher Fähigkeiten schreiben und zurücklesen. Modus, Auto ISO, Zeitgrenzen und Objektivgrenzen getrennt behandeln.
+4. Website und lokalen Verbindungsweg zusammen prüfen. Wenn direkter Browserzugriff blockiert ist, den validierten Profilimport als Rückfallweg fertigstellen und dokumentieren.
+5. Hardwareprüfungen H-01 bis H-10 aus der Recherche bei verfügbarer Kamera protokollieren. Ohne Gerät Softwarearbeiten abschließen; Hardwareabnahme und Persistenz bleiben offen.
+6. C-01 bis C-08, relevante Projektdokumentation, Commit und tatsächlichen Veröffentlichungsstand nachführen. Keine zusätzliche Freigaberunde für bereits beauftragte Arbeit einführen; technische Zugriffsgrenzen respektieren.
+
+**Prüfumfang:** Neue gezielte Tests sollen Profilvalidierung, A-/M-Semantik, Auto ISO, unzulässige Werte, Verbindungsabbruch, Rückleseabweichung, Teilerfolg und die betroffenen Browserabläufe abdecken. Bei einem lokalen Dienst zusätzlich unerlaubte Zugriffe prüfen. Bestehende Testbefehle oben weiterverwenden; konkrete Adapter-/Hardwarebefehle erst ergänzen, sobald sie tatsächlich implementiert und ausprobiert sind. Keine Kamera-Firmware ändern oder Service-Modus-Aktionen zur Einrichtung voraussetzen.
+
 ## Prüfcheckliste für Funktionsänderungen
 
 Diese Punkte beschreiben Prüfziele. Sie sind kein Nachweis, dass bereits alle Tests durchgeführt wurden oder bestehen. Bekannte Abweichungen stehen in [STATUS](STATUS.md).

@@ -43,3 +43,22 @@ Ein bestehender Link wie `#s=portrait.tag.steh.bokeh.s50` bleibt lesbar. Neue Li
 Für die Lichtschätzung kann der Browser nach Standortfreigabe auf drei Nachkommastellen gerundete Koordinaten an Open-Meteo senden. Jede Messung ist einer Anfrage zugeordnet. Manuelle Lichtwahl, Schnellstart und eine neuere Messung haben Vorrang vor verspäteten Ergebnissen. Bei abgelehntem Standort oder fehlenden Wetterdaten schätzt die App das Licht anhand der Uhrzeit. Ein gültiger Einstellungslink und eine gespeicherte manuelle Lichtwahl lassen die automatische Startmessung aus. Das Feld `autoLight` merkt sich automatisch bestimmte Werte, damit beim nächsten regulären Start eine neue Schätzung möglich ist. Ältere Speicherstände mit gültiger Lichtwahl gelten als manuell. „Neu messen“ fordert ausdrücklich einen neuen Vorschlag an.
 
 Das Manifest verwendet relative Start- und Scope-Adressen. Der Service Worker sichert die Anwendungsdateien für den Offline-Start. Die Dateiliste und Cache-Version stehen im Worker. Die zugehörige Marke `app-release` im HTML muss mit der Version übereinstimmen. Pflichtdateien werden vor Aktivierung auf HTTP-Status und Typ geprüft. Nur erfolgreiche passende HTML-Antworten für den jeweiligen App-Einstieg können den Offline-Stand aktualisieren. Bei einem Wechsel von einer älteren Cache-Fassung navigiert der Worker die bereits geöffneten App-Fenster erneut. Bei einer neuen Runtime gehören die Prüfung eines frischen Profils und der Versionswechsel eines bereits geöffneten Clients zur Abnahme. Die Entwicklungsanleitung beschreibt die Testbefehle und die getrennte Kontrolle auf der Produktionsdomain. [Entwicklung und Veröffentlichung](DEVELOPMENT.md)
+
+## Geplante optionale Kameraanbindung
+
+**Status: geplant, noch nicht im Runtime-Code vorhanden.** Anforderungen und Abnahme stehen in [Plan 003](plans/003-kameraverbindung-und-presettransfer.md), Belege und Grenzen in der [Verbindungsrecherche](research/sony-a6400-verbindung-und-presettransfer.md).
+
+| Komponente | Geplante Verantwortung |
+| --- | --- |
+| Bestehende Empfehlungslogik in `camera.js` | Gemeinsame Aufnahmeabsicht und strukturierte Zielwerte liefern; feste Werte von Auto-Modi und Empfehlungen unterscheiden |
+| Optionales Verbindungsmodul | Fähigkeiten und Istwerte anzeigen, explizite Übertragung starten, Rücklesung und Teilergebnisse auswerten |
+| Transportadapter | Einheitliche Schnittstelle für Simulation und echte lokale Verbindung; Fähigkeiten zur Laufzeit ermitteln |
+| Lokale Anwendung | Über gphoto2/libgphoto2 mit der α6400 per USB kommunizieren; validiertes Website-Profil importieren |
+
+- `camera.js` ist weiterhin die fotografische Regelbasis, kein bereits vorhandener USB-Treiber. Eine neue Verbindungsschicht soll daraus keine zweite unabhängige Empfehlungslogik machen.
+- Die Website bleibt ohne Verbindung als statische Offline-Hilfe nutzbar. Die lokale Anwendung läuft auf dem Nutzergerät; Netlify übernimmt keine USB-Kommunikation.
+- Anzeige-/Hinweistexte sind keine Maschinenbefehle. Ein Feld wie „1/125 s oder kürzer“ oder ein Auto-ISO-Bereich darf nicht als fester Zeit-/ISO-Wert interpretiert werden.
+- Istwerte und gewünschte Empfehlungen getrennt halten. Eine Übertragung gilt erst nach Rücklesung pro Wert als bestätigt; sie ist noch kein Nachweis dauerhafter Speicherung oder MR-Registrierung.
+- Der tatsächliche Zugriff der HTTPS-Website auf einen lokalen Dienst muss im Zielbrowser geprüft werden. Ein lokales Projekt mit Browseroberfläche beweist diese Verbindung noch nicht. Profil-Export/-Import ist der vorgesehene Rückfallweg.
+- Ein lokaler Dienst benötigt begrenzte Bindung und Zugriffe. Browserfreigaben respektieren; keine allgemein offene Schreibschnittstelle und keine Zugangsdaten in geteilten Profilen, URLs oder gecachten Dateien ablegen.
+- Neue Simulations-/USB-Module werden erst bei ihrer Implementierung Teil des Dateibaums. Dateinamen, Plattform, Abhängigkeiten und Befehle dann konkret dokumentieren. Firmware- und Service-Modus-Eingriffe gehören nicht zu dieser Architektur.

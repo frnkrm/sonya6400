@@ -2,6 +2,14 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## 2026-11-25 — Kameraanbindung recherchiert und Codex-Auftrag vorbereitet
+
+- [Verbindungsrecherche](docs/research/sony-a6400-verbindung-und-presettransfer.md) mit Sony- und Community-Quellen zu WLAN, Imaging Edge, NFC, USB, SD-Profilen und Modding ergänzt. Ungeprüfte Fähigkeiten und Hardwarefälle H-01 bis H-10 ausdrücklich benannt.
+- [Plan 003](docs/plans/003-kameraverbindung-und-presettransfer.md) mit C-01 bis C-08 angelegt: strukturierte Profile, echter lokaler USB-Adapter, Rücklesung, optionale Oberfläche, Import-Rückfallweg und getrennte Software-/Hardwareabnahme.
+- [Codex-Auftrag mit Startprompt](docs/CODEX-AUFTRAG.md) für autonome, gezielte Umsetzung und direkten Push auf `main` ergänzt. Bereits implementierte Landschafts- und Stabilisierungsarbeit bleibt Grundlage.
+- README, Agentenhinweise, Roadmap, Projektstand, Architektur und Entwicklungsanleitung verknüpft und auf die geplante Erweiterung abgestimmt.
+- Umfang: ausschließlich Markdown. Dateipfade, interne Verweise und Statuskonsistenz geprüft; keine neue Runtime, keine Kameraanbindung implementiert und keine neuen Kamera-/Browser-/Produktionsprüfungen durchgeführt.
+
 ## 2026-11-25 — Landschaftskompass und Aufnahmehilfen
 
 - Der Kompass berücksichtigt Landschaftsszene, Wind, Hand oder Stativ, nahen Vordergrund und die manuell gewählte Brennweite. Für Wasser kann die Zeichnung im Wasser oder in bewegten Blättern priorisiert werden.

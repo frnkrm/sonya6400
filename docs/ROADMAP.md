@@ -14,6 +14,20 @@ Stand 25. November 2026. Die Pläne ordnen jede Anforderung ihrer Abnahme zu. Er
 | DEV-02 | Regelberechnung und Fachwerkzeuge als eigenständige statische Dateien | [Architektur](ARCHITECTURE.md) |
 | OPS-01 | Git-Stand, Netlify-Deploy, Produktionsdateien und Header prüfen | [Veröffentlichung](STATUS.md#veröffentlichung) |
 
+## Nächster Entwicklungsauftrag: Kameraanbindung
+
+**Planungsstand: aufgenommen, Software und Kameraabnahme noch offen.** Die [Recherche](research/sony-a6400-verbindung-und-presettransfer.md) und [Plan 003](plans/003-kameraverbindung-und-presettransfer.md) beschreiben die Grundlage für einen Button „Einstellungen übertragen“. Der [Codex-Auftrag](CODEX-AUFTRAG.md) enthält Ablauf und Startprompt.
+
+| Kennungen | Geplanter Umfang | Status |
+| --- | --- | --- |
+| C-01, C-02 | Tatsächliche Kamerafähigkeiten und ein eindeutiges Übertragungsprofil | Geplant |
+| C-03, C-04 | Ausführbarer lokaler USB-Adapter; Werte schreiben und zurücklesen | Geplant |
+| C-05, C-06 | Kompakte Verbindungsansicht, manuelle Restschritte und Profilimport | Geplant |
+| C-07, C-08 | Gezielte Tests, Einrichtung, Dokumentation und Veröffentlichung | Geplant |
+| H-01 bis H-10 | Tatsächliche Kamera-, Persistenz-, MR- und ergänzende Prüfungen aus der Recherche | Offen; keine Hardwaretests erfolgt |
+
+Zuerst ISO, Blende und Belichtungszeit über USB umsetzen. Weitergehende WLAN-, Android- und SD-Wege gezielt nachprüfen, sobald ein konkreter Bedarf besteht. Die direkte Übergabe von Website-Profilen an Imaging Edge und die dauerhafte Speicherung in MR sind nicht bestätigt. Die bereits abgenommenen Pläne 001/002 bleiben Grundlage; nur nachgewiesene Restarbeiten erneut bearbeiten. OPS-01 bleibt bis zur dokumentierten Produktionsprüfung offen.
+
 ## Ideenparkplatz
 
 Mögliche Erweiterungen, **noch nicht zur Umsetzung eingeplant**:

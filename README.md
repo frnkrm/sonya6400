@@ -17,6 +17,8 @@ Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Landschaft, Porträt,
 
 Die App zeigt Empfehlungen. Sie steuert keine Kamera und überträgt keine Einstellungen an die α6400.
 
+Eine optionale Verbindung ist in [Plan 003](docs/plans/003-kameraverbindung-und-presettransfer.md) vorbereitet: zunächst ISO, Blende und Belichtungszeit über eine lokale USB-Anwendung übertragen und zurücklesen. Die [Recherche](docs/research/sony-a6400-verbindung-und-presettransfer.md) erklärt WLAN, Imaging Edge, NFC, Community-Projekte und die noch offenen Hardwareprüfungen. **Geplant, noch nicht implementiert.**
+
 ## Eine Landschaftsaufnahme vorbereiten
 
 Wähle im Kompass **Landschaft**, dein Objektiv und die aktuelle Brennweite. Für bewegte Blätter kannst du Wind angeben. Bei einem Wasserfall entscheidest du, ob das Wasser weich oder eingefroren erscheinen soll. Der Kompass zeigt die dazugehörigen Startwerte und führt dich durch die Kontrolle am Probebild.
@@ -53,7 +55,10 @@ Dann **[http://localhost:8080/](http://localhost:8080/)** öffnen. Datei bearbei
 | [ROADMAP](docs/ROADMAP.md) | Arbeitsstand, Prüfgrenzen und Ideen für spätere Vorhaben |
 | [Erster Plan: Stabilisierung](docs/plans/001-stabilisierung.md) | Konkretes erstes Arbeitspaket mit Abnahmekriterien |
 | [Plan 002: Landschaft und Kamerafunktionen](docs/plans/002-landschaft-und-kamerafunktionen.md) | Anforderungen und Abnahmekriterien für die 26 Punkte K-01 bis K-26 |
+| [Plan 003: Kameraverbindung und Presetübertragung](docs/plans/003-kameraverbindung-und-presettransfer.md) | C-01 bis C-08: Übertragungsprofil, USB-Adapter, Rücklesung, Oberfläche und Abnahme |
 | [Kamera- und Objektivrecherche](docs/research/sony-a6400-kamera-objektive.md) | Herstellerdaten, Aufnahmebeispiele, Grenzen und Quellen |
+| [Verbindung und Presettransfer](docs/research/sony-a6400-verbindung-und-presettransfer.md) | Belegte Sony-/Community-Wege und offene Hardwareprüfungen H-01 bis H-10 |
+| [Codex-Auftrag mit Startprompt](docs/CODEX-AUFTRAG.md) | Den nächsten Entwicklungslauf autonom, gezielt und mit ehrlichem Prüfstand ausführen |
 | [Planvorlage](docs/plans/TEMPLATE.md) | Neue Ideen in umsetzbare Vorhaben übersetzen |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Dateien, Funktionen, Zustand, Wetter und Service Worker |
 | [DEVELOPMENT](docs/DEVELOPMENT.md) | Einrichtung, Arbeitsablauf, gezielte Prüfungen und Netlify-Veröffentlichung |

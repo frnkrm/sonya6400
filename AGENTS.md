@@ -6,7 +6,7 @@ Diese Hinweise gelten für das gesamte Projekt. Konkrete aktuelle Nutzeraufträg
 
 1. [README](README.md), [Bestandsaufnahme](docs/STATUS.md) und [Architektur](docs/ARCHITECTURE.md) lesen.
 2. Die betroffenen Quelldateien im aktuellen Branch prüfen; Dokumentation kann hinter dem Code liegen.
-3. Passende Punkte in [ROADMAP](docs/ROADMAP.md), [Plan 001](docs/plans/001-stabilisierung.md) und [Plan 002](docs/plans/002-landschaft-und-kamerafunktionen.md) beachten.
+3. Passende Punkte in [ROADMAP](docs/ROADMAP.md), [Plan 001](docs/plans/001-stabilisierung.md), [Plan 002](docs/plans/002-landschaft-und-kamerafunktionen.md) und [Plan 003](docs/plans/003-kameraverbindung-und-presettransfer.md) beachten. Bereits abgenommene Arbeit anhand des aktuellen Codes erhalten; nicht erneut aufbauen.
 4. Nur den beauftragten Umfang umsetzen. Ein dokumentierter Vorschlag ist kein Auftrag zur sofortigen Implementierung.
 
 ## Technischer Rahmen
@@ -38,6 +38,15 @@ Diese Hinweise gelten für das gesamte Projekt. Konkrete aktuelle Nutzeraufträg
 - Mobile Bedienbarkeit, sichtbaren Fokus, Tastatursteuerung, Dialogfokus und reduzierte Bewegung erhalten.
 - Standortfreigabe darf für die manuelle Nutzung nicht erforderlich werden. Fehlerfälle verständlich anzeigen.
 - Neue externe oder frei eingegebene Inhalte validieren und sicher ausgeben; keine ungeprüften Werte in `innerHTML` übernehmen.
+
+## Kameraverbindung und Übertragungsauftrag
+
+- Für die Kameraanbindung [Plan 003](docs/plans/003-kameraverbindung-und-presettransfer.md) und die [Verbindungsrecherche](docs/research/sony-a6400-verbindung-und-presettransfer.md) verwenden. Der vollständige nächste Arbeitsauftrag steht in [CODEX-AUFTRAG](docs/CODEX-AUFTRAG.md).
+- Die aktuelle App überträgt noch keine Einstellungen. Herstellerbelege, Community-Angaben, Simulation und eigene Hardwareprüfung getrennt führen.
+- Nur tatsächlich unterstützte Werte schreiben und anschließend zurücklesen. Auto ISO, feste ISO, Belichtungszeit und ISO AUTO Min. SS nicht gleichsetzen; Empfehlungen aus der gemeinsamen Regelbasis ableiten.
+- Fehlende Kamera oder externer Zugriff: unabhängig umsetzbare Software fertigstellen, konkrete Hardwareprüfung offen dokumentieren. Keine erfundenen Erfolge und keinen reinen Dummy als fertigen USB-Adapter ausgeben.
+- Der Übertragungsauftrag umfasst keine Firmwareänderung und keinen Service-Modus. Browser- und Geräteberechtigungen bleiben wirksam; keine Zugriffsregeln oder Branchschutz umgehen.
+- Bei aktiviertem Codex-Auftrag übliche Entscheidungen eigenständig treffen, vorhandene Recherche wiederverwenden, gezielt testen und den bereits autorisierten Veröffentlichungsweg ohne zusätzliche Freigaberunde nutzen.
 
 ## Prüfen und dokumentieren
 
