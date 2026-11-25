@@ -4,7 +4,7 @@ Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach 
 
 ## Native Profilübertragung unter Windows (v12)
 
-- Die lokale Windows-App liest jetzt ISO, Blende und Zeit für eine gemeinsame Vorschau. Nach einem Klick auf **Einstellungen übertragen** versucht sie die schreibbaren Profilwerte einzustellen und zeigt für jedes Feld die Rücklesung. Windows-Einzeltests und gphoto2 über WSL sind weiterhin separat erreichbar. [Einrichtung und Gerätetest](docs/WINDOWS-USB.md#ein-profil-mit-windows-übertragen)
+- Die lokale Windows-App liest jetzt ISO, Blende und Zeit für eine gemeinsame Vorschau. Nach einem Klick auf **Einstellungen übertragen** versucht sie die schreibbaren Profilwerte einzustellen und zeigt für jedes Feld die Rücklesung. An der ILCE-6400 bestätigten Kompass und Kameradisplay nach der automatischen Übertragung des M-Profils ISO Auto, f/3,5 und 1/125 s. Windows-Einzeltests und gphoto2 über WSL sind weiterhin separat erreichbar. [Einrichtung und Gerätetest](docs/WINDOWS-USB.md#ein-profil-mit-windows-übertragen)
 
 ## Einzeltests für Blende und Belichtungszeit unter Windows (v11)
 
