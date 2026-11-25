@@ -1,5 +1,5 @@
 /* Bei Änderungen an der App VERSION und die Versionsmarke in index.html erhöhen. */
-const VERSION = "v9";
+const VERSION = "v10";
 const SCOPE = self.registration.scope;
 const PREFIX = "a6400:" + SCOPE + ":";
 const CACHE = PREFIX + VERSION;

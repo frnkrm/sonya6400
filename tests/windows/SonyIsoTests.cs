@@ -141,10 +141,18 @@ internal static class SonyIsoTests
             }
         }
         var stale = new Session(start, start, start, start);
-        try { SonyIso.Step(stale.Receive, stale.StepUp); throw new Exception("False stale confirmation"); }
-        catch (InvalidOperationException) {
-            Check(stale.Commands.SequenceEqual(preview.Concat(new[] {"step", "9209/0", "9209/0", "9209/0"})),
-                "bounded readbacks on unchanged ISO");
+        Check(!SonyIso.Step(stale.Receive, stale.StepUp).HasValue, "old session cannot confirm 400 as success");
+        Check(stale.Commands.SequenceEqual(preview.Concat(new[] {"step", "9209/0", "9209/0", "9209/0"})),
+            "one write and bounded readbacks on unchanged ISO");
+        var reopened = new Session(start, target);
+        Check(SonyIso.ConfirmInFreshSession(reopened.Receive) == 500, "fresh M session confirms delayed fixed ISO");
+        Check(reopened.Commands.SequenceEqual(preview.Concat(new[] {"9209/0"})), "fresh session only reads");
+        foreach (var snapshots in new[] { new[] { start, start, start }, new[] { Capabilities(640) },
+            new[] { Capabilities(0x010001F4) }, new[] { Capabilities(500, mode: 3) } })
+        {
+            var unchanged = new Session(snapshots);
+            try { SonyIso.ConfirmInFreshSession(unchanged.Receive); throw new Exception("False fresh confirmation"); }
+            catch (InvalidOperationException) { Check(!unchanged.Commands.Contains("step"), "unconfirmed fresh read"); }
         }
         var partial = new Session(start, Hex("01 00"));
         Invalid(() => SonyIso.Step(partial.Receive, partial.StepUp), "truncated readback");

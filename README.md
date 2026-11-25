@@ -19,7 +19,7 @@ Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Landschaft, Porträt,
 
 Lade unter Windows 11 x64 das aktuelle Projekt-ZIP herunter, entpacke es in einen neuen Ordner und starte **Start-Kamera.cmd**. Lass die Kamera Windows zugeordnet und schließe Sony Imaging Edge Remote. Wähle in der lokalen App **Kameraverbindung & Profil → USB am Computer → ISO über Windows lesen**. Beim Versuch mit v8 zeigten Kompass und Kameradisplay übereinstimmend feste **ISO 400**. [Windows-Anleitung mit ZIP-Download](docs/WINDOWS-USB.md)
 
-Für den optionalen ersten Schreibtest unterstützt v9 genau einen Schritt im Fotomodus M. Wenn die Kamera feste ISO 400 und die nächste freigegebene Stufe 500 meldet, wird **ISO von 400 auf 500 ändern** nach dem Lesen aktiv. Der Vergleich von Rücklesung und Display bei ISO 500 steht noch aus. [Anleitung für den einmaligen Hardwaretest](docs/WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
+Die lokale Windows-App unterstützt einen einzelnen ISO-Schritt im Fotomodus M. Wenn die Kamera feste ISO 400 und die nächste freigegebene Stufe 500 meldet, wird **ISO von 400 auf 500 ändern** nach dem Lesen aktiv. Im Gerätetest zeigte das Kameradisplay danach ISO 500. Die automatische Rücklesung in v9 meldete noch ISO 400. Ab v10 öffnet die App in diesem Fall eine neue Lesesitzung. [Anleitung für den einmaligen Hardwaretest](docs/WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
 
 ## Eine Empfehlung an die Kamera übertragen
 

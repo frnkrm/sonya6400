@@ -2,10 +2,14 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## Windows-Rücklesung nach ISO-Änderung (v10)
+
+- Im Gerätetest mit v9 wechselte das Display der α6400 nach dem Windows-Schreibbefehl von ISO 400 auf ISO 500. Die Abfragen in der Schreibsitzung lieferten noch ISO 400. Bei diesem Ergebnis liest v10 nach kurzer Pause in einer neuen Sitzung derselben Kamera nach. Nur gelesene feste ISO 500 im Fotomodus M bestätigen den Schritt. [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
+
 ## Einmaliger Windows-Test von ISO 400 auf 500 (v9)
 
 - Mit v8 zeigten die native WPD-Lesung im Kompass und das Display der angeschlossenen α6400 übereinstimmend **feste ISO 400**. Die übrigen Gerätewerte und Fähigkeiten aus H-01 bleiben offen. [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
-- Im Fotomodus M bietet eine frische native Vorschau **ISO von 400 auf 500 ändern** an, wenn das Gerät diesen Einzelschritt freigibt. Nach dem ausdrücklichen Klick sendet die App den Schreibbefehl einmal und liest den tatsächlichen Wert zurück. Der physische Schreibversuch ist offen. [Testanleitung](docs/WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
+- Im Fotomodus M bietet eine frische native Vorschau **ISO von 400 auf 500 ändern** an, wenn das Gerät diesen Einzelschritt freigibt. Nach dem ausdrücklichen Klick sendet die App den Schreibbefehl einmal und liest den tatsächlichen Wert zurück. Den späteren Displayvergleich dokumentiert der Eintrag zu v10. [Testanleitung](docs/WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
 
 ## ISO-Wert und Mehrbild-Rauschminderung unter Windows
 

@@ -58,27 +58,41 @@ internal static class SonyIso
         return ParseSnapshot(receive(0x9209, new uint[] { 0 }));
     }
 
-    internal static uint Step(Func<ushort, uint[], byte[]> receive, Action stepUp)
+    // Null means the write was acknowledged and every read still showed the starting value.
+    internal static uint? Step(Func<ushort, uint[], byte[]> receive, Action stepUp)
     {
         if (stepUp == null) throw new ArgumentNullException("stepUp");
         Snapshot before = Preview(receive);
         if (!before.CanStep)
             throw new InvalidOperationException("Schreibtest gesperrt. Die Kamera muss in M normales ISO 400 und die nächste freigegebene Stufe 500 melden.");
 
-        // One command, even if the response is lost. All subsequent calls are
-        // reads on the same WPD session. A repeat reading of 400 may be stale.
         stepUp();
+        return PollStepResult(receive, ParseSnapshot(receive(0x9209, new uint[] { 0 })));
+    }
+
+    internal static uint ConfirmInFreshSession(Func<ushort, uint[], byte[]> receive)
+    {
+        uint? confirmed = PollStepResult(receive, Preview(receive));
+        if (confirmed.HasValue) return confirmed.Value;
+        throw new InvalidOperationException("Auch die neue Windows-Lesung meldet ISO 400. Bitte mit dem Kameradisplay vergleichen.");
+    }
+
+    private static uint? PollStepResult(Func<ushort, uint[], byte[]> receive, Snapshot actual)
+    {
         for (int attempt = 0; attempt < 3; attempt++)
         {
-            if (attempt > 0) Thread.Sleep(250);
-            Snapshot actual = ParseSnapshot(receive(0x9209, new uint[] { 0 }));
+            if (attempt > 0)
+            {
+                Thread.Sleep(250);
+                actual = ParseSnapshot(receive(0x9209, new uint[] { 0 }));
+            }
             if (actual.ExposureMode != ManualExposure)
                 throw new InvalidOperationException("Der Modus M wurde beim Rücklesen nicht bestätigt. ISO an der Kamera prüfen.");
             if (actual.Iso == TargetIso) return actual.Iso;
             if (actual.Iso != InitialIso)
                 throw new InvalidOperationException("Die Kamera meldet einen abweichenden ISO-Wert. ISO an der Kamera prüfen.");
         }
-        throw new InvalidOperationException("Beim Rücklesen meldet die Kamera weiterhin ISO 400. Der Schritt auf ISO 500 ist unbestätigt.");
+        return null;
     }
 
     private static bool HasDeviceInfo(byte[] payload)

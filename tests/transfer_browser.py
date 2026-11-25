@@ -246,10 +246,15 @@ class TransferFlow(BrowserCase):
         expect(status).to_contain_text("ISO-Schritt unbestätigt")
         expect(status).to_contain_text("erneut lesen")
         expect(step).to_be_disabled()
+        result.write_text(json.dumps({"model": "ILCE-6400", "iso": 500}))
+        read.click()
+        expect(status).to_contain_text("ISO 500 · gelesen")
+        expect(step).to_be_disabled()
         self.assertEqual(calls.read_text().splitlines(), ["step", "step"])
 
         # Eine inzwischen geänderte Empfehlung erhält das Ergebnis als früheren Auftrag.
         fail.unlink()
+        result.write_text(json.dumps({"model": "ILCE-6400", "iso": 400, "stepKey": "ab" * 32}))
         read.click()
         expect(step).to_be_enabled()
         delayed = []

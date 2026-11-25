@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 internal static class Program
 {
@@ -13,22 +14,17 @@ internal static class Program
             bool step = args.Length == 2 && args[0] == "--step-400-500";
             if (args.Length != 0 && (!step || !System.Text.RegularExpressions.Regex.IsMatch(args[1], @"\A[0-9a-f]{64}\z")))
                 throw new InvalidOperationException("Unbekannter Windows-Kameraauftrag.");
+            if (step)
+            {
+                Console.WriteLine("0x{0:X8}", StepAndConfirm(args[1]));
+                return 0;
+            }
             using (Wpd camera = Wpd.OpenSony())
             {
-                if (step)
-                {
-                    if (!String.Equals(camera.DeviceKey, args[1], StringComparison.Ordinal))
-                        throw new InvalidOperationException("Die Kamera hat sich seit der Vorschau geändert. Erneut lesen.");
-                    uint confirmed = SonyIso.Step(camera.ReadData, camera.StepIsoUp);
-                    Console.WriteLine("0x{0:X8}", confirmed);
-                }
-                else
-                {
-                    var state = SonyIso.Preview(camera.ReadData);
-                    string preview = state.CanStep ? " " + camera.DeviceKey : "";
-                    if (state.Iso == 400 && !state.CanStep) preview = " !" + state.StepBlock;
-                    Console.WriteLine("0x{0:X8}{1}", state.Iso, preview);
-                }
+                var state = SonyIso.Preview(camera.ReadData);
+                string preview = state.CanStep ? " " + camera.DeviceKey : "";
+                if (state.Iso == 400 && !state.CanStep) preview = " !" + state.StepBlock;
+                Console.WriteLine("0x{0:X8}{1}", state.Iso, preview);
             }
             return 0;
         }
@@ -42,5 +38,29 @@ internal static class Program
             Console.Error.WriteLine("WPD: " + message);
             return 1;
         }
+    }
+
+    private static uint StepAndConfirm(string expectedKey)
+    {
+        using (Wpd camera = Wpd.OpenSony())
+        {
+            RequireSameDevice(camera, expectedKey);
+            uint? confirmed = SonyIso.Step(camera.ReadData, camera.StepIsoUp);
+            if (confirmed.HasValue) return confirmed.Value;
+        }
+        // v9 hardware observation: the screen showed 500 while this session still read 400.
+        // Give the camera time to settle, then run the normal read handshake on a new handle.
+        Thread.Sleep(750);
+        using (Wpd camera = Wpd.OpenSony())
+        {
+            RequireSameDevice(camera, expectedKey);
+            return SonyIso.ConfirmInFreshSession(camera.ReadData);
+        }
+    }
+
+    private static void RequireSameDevice(Wpd camera, string expectedKey)
+    {
+        if (!String.Equals(camera.DeviceKey, expectedKey, StringComparison.Ordinal))
+            throw new InvalidOperationException("Die Kamera hat sich seit der Vorschau geändert. Erneut lesen.");
     }
 }

@@ -105,7 +105,7 @@ const TransferUI = (() => {
             <p>Für USB an der α6400 unter USB-Verbindung „PC-Fernbedienung“ wählen. Ein Datenkabel verwenden, andere Fernsteuerungsprogramme schließen und in der lokalen Anwendung die Istwerte lesen.</p>
             <p>Die JSON-Datei dient dieser Anwendung. Ein direkter Sony-Import an der Kamera ist damit nicht möglich. Am Moduswahlrad den angegebenen Modus wählen und die manuellen Schritte an der Kamera ausführen. Ein dauerhaftes MR-Profil wird separat an der Kamera gespeichert.</p>
             <p>Für Imaging Edge Mobile unter MENU → Netzwerk „Strg mit Smartphone“ einschalten und das Smartphone per QR-Code oder SSID verbinden. NFC kann die WLAN-Verbindung einrichten. In IEM die Aufnahmeparameter von Hand einstellen.</p>
-            <p>Das native Lesen von ISO 400 wurde an einer α6400 bestätigt. Die Hardwareprüfung des ISO-Schreibschritts steht aus.</p>
+            <p>Zeigt die Kamera nach dem ISO-Schritt schon 500 und bleibt die Rücklesung unbestätigt, lass die Kamera auf 500 und wähle „ISO über Windows lesen“.</p>
           </div></details>
         </div>
       </details>`;
