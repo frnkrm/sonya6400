@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sonyalpha6400.frnkrm.com/sitemap.xml
