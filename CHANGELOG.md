@@ -2,6 +2,11 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## Nativer ISO-Lesetest unter Windows
+
+- Die lokale App bietet auf Windows 11 x64 **ISO über Windows lesen** an. Die Kamera bleibt dem Windows-Treiber zugeordnet. Die [Kurzanleitung](docs/WINDOWS-USB.md) führt vom frischen Projekt-ZIP bis zur Anzeige von ISO oder Fehler.
+- Der beobachtete WSL-Timeout beim ersten OpenSession-Transfer und der separate Befund ISO 400 aus Sony Imaging Edge Remote sind im [Prüfstand](docs/STATUS.md#kameraanbindung) dokumentiert. Die native Rücklesung am Gerät ist offen.
+
 ## 2026-11-25 — USB-Einrichtung unter Windows
 
 - Das Projekt-ZIP enthält einen Windows-Starter für den lokalen Kameradienst. Node.js läuft unter Windows, gphoto2 in Ubuntu unter WSL 2. Eine [Anleitung](docs/WINDOWS-USB.md) erklärt die Gerätezuordnung und den ersten Lesetest.

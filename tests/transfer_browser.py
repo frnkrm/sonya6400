@@ -65,7 +65,11 @@ class TransferFlow(BrowserCase):
         cli.chmod(0o700)
         env = dict(os.environ, CAMERA_FIXTURE=tmp.name, PATH=tmp.name + os.pathsep + os.environ["PATH"])
         proc = subprocess.Popen(
-            ["node", "-e", "const s=require('./local/server.js').createApp();"
+            ["node", "-e", "const fs=require('node:fs'); const dir=process.env.CAMERA_FIXTURE;"
+             "const s=require('./local/server.js').createApp(undefined, async () => {"
+             "fs.appendFileSync(dir+'/native-reads', 'read\\n');"
+             "if(fs.existsSync(dir+'/native-error'))throw Error('Kamera getrennt.');"
+             "return {model:'ILCE-6400',iso:400}; });"
              "s.listen(0,'127.0.0.1',()=>console.log(s.address().port))"],
             cwd=ROOT, env=env, stdout=subprocess.PIPE, text=True
         )
@@ -159,6 +163,35 @@ class TransferFlow(BrowserCase):
         page.locator("#transfer-read").click()
         expect(button).to_be_disabled()
         expect(page.locator("#transfer-apply")).to_be_enabled()
+
+    def test_native_windows_read_does_not_authorize_writes(self):
+        state, writes = self.reset_camera()
+        self.open_panel(self.companion + "#s=landscape.tag.steh.sweet.tam&scene=water")
+        page = self.page
+        button = page.get_by_role("button", name="ISO über Windows lesen")
+        expect(button).to_be_hidden()
+        page.locator("#transfer-source").select_option("usb")
+        expect(button).to_be_visible()
+        reads = self.fixture / "native-reads"
+        self.assertFalse(reads.exists())
+        page.locator("#transfer-read").click()
+        expect(page.locator("#transfer-apply")).to_be_enabled()
+        button.press("Enter")
+        expect(page.locator("#transfer-status")).to_contain_text("Sony ILCE-6400 · ISO 400")
+        expect(page.locator("#transfer-iso")).to_be_disabled()
+        expect(page.locator("#transfer-apply")).to_be_disabled()
+        self.assertEqual(reads.read_text().splitlines(), ["read"])
+        self.assertFalse(writes.exists())
+        self.assertEqual(json.loads(state.read_text())["imgsettings/iso"], "200")
+        fail = self.fixture / "native-error"
+        fail.touch()
+        self.addCleanup(fail.unlink)
+        button.click()
+        expect(page.locator("#transfer-status")).to_contain_text("Kamera getrennt")
+        expect(page.locator("#transfer-status")).not_to_contain_text("ISO 400")
+        expect(page.locator("#transfer-apply")).to_be_disabled()
+        page.locator("#transfer-source").select_option("simulation")
+        expect(button).to_be_hidden()
 
     def test_rejected_aperture_after_confirmed_iso(self):
         state, writes = self.reset_camera()

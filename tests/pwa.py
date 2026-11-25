@@ -20,6 +20,7 @@ RELEASE = re.search(r'const VERSION = "([^"]+)"', (ROOT / "sw.js").read_text())[
 V3 = "678e440489266b9fb514d9688f4d0f66c5a5543e"
 V4 = "1aa7cd744d18c9460127836e7d678ce6670a92ee"
 V5 = "3449a1f2819b8b1b97279861746efd06050038bf"
+V6 = "5dc338e8f7a0cafb90ef61425ff5d0590369dece"
 
 
 class Deploy(SimpleHTTPRequestHandler):
@@ -147,6 +148,26 @@ class OfflineAndUpdate(unittest.TestCase):
         self.tab.locator("#transfer-read").click()
         self.tab.get_by_role("button", name="Nur ISO übertragen").click()
         expect(self.tab.locator("#transfer-status")).to_contain_text("Simulation · ISO-Einzeltest · Bestätigt")
+
+    def test_v6_client_updates_with_local_windows_action(self):
+        self.http.old_files = {
+            name: subprocess.check_output(["git", "show", f"{V6}:{name}"], cwd=ROOT)
+            for name in ("index.html", "sw.js", "transfer-ui.js")
+        }
+        self.http.legacy = True
+        self.open_app()
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", "v6")
+        self.assertEqual(self.tab.locator("#transfer-windows").count(), 0)
+        self.http.legacy = False
+        self.tab.evaluate("navigator.serviceWorker.ready.then(reg => reg.update()).then(() => true)")
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", RELEASE)
+        self.http.offline = True
+        self.assertTrue(self.tab.reload().from_service_worker)
+        self.tab.locator("#transfer-panel > summary").click()
+        expect(self.tab.locator("#transfer-windows")).to_have_count(1)
+        expect(self.tab.locator("#transfer-windows")).to_be_hidden()
+        self.tab.locator("#transfer-read").click()
+        expect(self.tab.locator("#transfer-status")).to_contain_text("Simulation")
 
     def test_failed_update_and_upgrade_of_existing_tab_and_installed_app(self):
         self.http.old_files = {

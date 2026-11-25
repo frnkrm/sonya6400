@@ -24,7 +24,7 @@ Stand 25. November 2026. Die Pläne ordnen jede Anforderung ihrer Abnahme zu. Er
 | C-07, C-08 | Softwaretests und Nachweise für Git und Produktion | [Projektstand](STATUS.md) |
 | H-01 bis H-10 | Erkennung, tatsächliche Schreibbarkeit, Persistenz, MR und ergänzende Möglichkeiten an einer α6400 | [Offenes Hardwareprotokoll](plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll) |
 
-Für den Hardwareversuch auf Windows 11 x64 gibt es einen Start per Doppelklick und einen eigenen Einzeltest für ISO. In einem Praxistest zeigte Sony Imaging Edge Remote unter Windows ISO 400 an. Für den Projektadapter werden als nächste Beobachtungen die erste erfolgreiche Lesung und die Rücklesung nach einer ausdrücklich gestarteten ISO-Änderung benötigt. [Windows-Anleitung](WINDOWS-USB.md)
+Als nächster Windows-Hardwareversuch steht die native ISO-Rücklesung und der Vergleich mit dem Display der α6400 an. Sony Imaging Edge Remote zeigte ISO 400 an. Für WSL ist am getesteten Setup der Timeout bei PTP OpenSession reproduziert. Profilübertragung und Persistenz bleiben eigenständige Hardwarefälle. [Windows-Lesetest](WINDOWS-USB.md)
 
 ## Ideenparkplatz
 

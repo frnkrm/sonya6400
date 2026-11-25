@@ -9,6 +9,7 @@ on:
       - "local/**"
       - "transfer-*.js"
       - "tests/*.test.js"
+      - "tests/windows/**"
 
 permissions:
   contents: read
@@ -23,7 +24,16 @@ jobs:
         with:
           node-version: 22
       - name: Adapter, Server und Einzelübertragung prüfen
-        run: node --test tests/gphoto.test.js tests/local-server.test.js tests/transfer-engine.test.js
+        run: node --test tests/gphoto.test.js tests/local-server.test.js tests/transfer-engine.test.js tests/windows-iso.test.js
+      - name: Nativen Windows-Leser kompilieren und Sony-Datenformat prüfen
+        shell: pwsh
+        run: |
+          $compiler = Join-Path $env:SystemRoot 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          & $compiler /nologo /noconfig /codepage:65001 /platform:x64 /reference:System.dll /reference:System.Core.dll "/out:$env:RUNNER_TEMP\SonyIso.exe" local/windows/Program.cs local/windows/Wpd.cs local/windows/SonyIso.cs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $compiler /nologo /codepage:65001 "/out:$env:RUNNER_TEMP\SonyIsoTests.exe" local/windows/SonyIso.cs local/windows/Wpd.cs tests/windows/SonyIsoTests.cs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$env:RUNNER_TEMP\SonyIsoTests.exe"
       - name: Lokale Anwendung über den Windows-Starter öffnen
         shell: pwsh
         run: |

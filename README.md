@@ -15,13 +15,15 @@ Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Landschaft, Porträt,
 - Teilbare Einstellungslinks und eine als PNG speicherbare Karte.
 - Installation als Web-App und Offline-Nutzung nach erfolgreichem Laden der benötigten Dateien.
 
+## ISO unter Windows lesen
+
+Für Windows 11 x64: Lade das aktuelle Projekt-ZIP herunter, entpacke es neu und starte **Start-Kamera.cmd**. Lass die Kamera Windows zugeordnet und schließe Sony Imaging Edge Remote. Wähle in der lokalen App **Kameraverbindung & Profil → USB am Computer → ISO über Windows lesen**. Dieser Test liest den ISO-Wert über den Windows-Treiber. Die Hardwarebestätigung für diesen Projektweg steht aus. [Windows-Anleitung mit ZIP-Download](docs/WINDOWS-USB.md)
+
 ## Eine Empfehlung an die Kamera übertragen
 
 Wähle zuerst dein Motiv und die Aufnahmebedingungen. Die optionale Verbindung zeigt, welche Werte für ISO, Blende und Belichtungszeit im gewählten Modus übertragen werden können. Die Rückmeldung nennt den pro Feld zurückgelesenen Wert. Fokus, Stabilisierung und weitere manuelle Schritte bleiben im Kompass sichtbar.
 
-Öffne im Kompass **Kameraverbindung & Profil** und wähle **Empfehlung als JSON speichern**. Öffne die lokale Anwendung auf dem Rechner am USB-Kabel, wähle **Profil aus Datei laden** und verbinde deine α6400 im USB-Modus **PC-Fernbedienung**. Stelle die Verbindung in der Oberfläche auf **USB am Computer** und lies die Istwerte ein. Prüfe die Vorschau und klicke auf **Einstellungen übertragen**. Zum Ausprobieren ohne Kamera gibt es eine gekennzeichnete Simulation. Für die lokale App steht die Prüfung an einem physischen Gerät aus. [Lokale Einrichtung](docs/DEVELOPMENT.md#lokale-usb-anwendung) · [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
-
-**Windows 11 (x64):** Lade die Projekt-ZIP herunter, entpacke sie und verwende **Start-Kamera.cmd**. Die Windows-Anleitung führt dich durch die einmalige Einrichtung mit WSL 2, das sichere Erkennen deiner Kamera und den ersten Lesetest. Als separaten Versuch kannst du anschließend **Nur ISO übertragen**. [Windows-Anleitung mit ZIP-Download](docs/WINDOWS-USB.md)
+Öffne im Kompass **Kameraverbindung & Profil** und wähle **Empfehlung als JSON speichern**. Öffne die lokale Anwendung auf dem Rechner am USB-Kabel, wähle **Profil aus Datei laden** und verbinde deine α6400 im USB-Modus **PC-Fernbedienung**. Stelle die Verbindung in der Oberfläche auf **USB am Computer** und lies die Istwerte ein. Prüfe die Vorschau und klicke auf **Einstellungen übertragen**. Zum Ausprobieren ohne Kamera gibt es eine gekennzeichnete Simulation. Der vollständige USB-Ablauf mit bestätigter Übernahme am Gerät ist noch offen. [Lokale Einrichtung](docs/DEVELOPMENT.md#lokale-usb-anwendung) · [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
 
 ## Eine Landschaftsaufnahme vorbereiten
 

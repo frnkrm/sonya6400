@@ -6,7 +6,7 @@ const {once} = require("node:events");
 const {createApp} = require("../local/server.js");
 const {SimulationAdapter} = require("../transfer-engine.js");
 
-async function setup(t) {
+async function setup(t, windowsIso = null) {
   const adapter = new SimulationAdapter("M");
   const writes = [];
   const write = adapter.write.bind(adapter);
@@ -14,7 +14,7 @@ async function setup(t) {
     writes.push(args[0]);
     return write(...args);
   };
-  const app = createApp(adapter);
+  const app = createApp(adapter, windowsIso);
   app.listen(0, "127.0.0.1");
   await once(app, "listening");
   t.after(() => new Promise(resolve => {
@@ -116,4 +116,32 @@ test("Die USB-Sitzung akzeptiert explizit ISO allein und verbraucht diese Vorsch
   assert.deepEqual(result.rows.map(row => row.field), ["iso"]);
   assert.deepEqual(writes, ["iso"]);
   assert.equal((await post("apply", token, {profile, expected})).status, 409);
+});
+
+test("Native Windows-Abfrage liest nur Modell und ISO und entwertet Schreibvorschauen", async t => {
+  let reads = 0;
+  const {origin, post, writes} = await setup(t, async () => {
+    reads++;
+    return {model: "ILCE-6400", iso: 400, serial: "fixture-private"};
+  });
+  const {token, windowsIso} = await (await fetch(origin + "/api/session")).json();
+  assert.equal(windowsIso, true);
+  const expected = await (await post("read", token, {})).json();
+  assert.equal((await post("windows-iso", token, {iso: 800})).status, 400);
+  assert.equal((await post("windows-iso", "", {})).status, 403);
+  assert.equal((await post("windows-iso", token, {}, {Origin: "https://example.org"})).status, 403);
+  assert.equal(reads, 0);
+  const res = await post("windows-iso", token, {});
+  assert.equal(res.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await res.json(), {model: "ILCE-6400", iso: 400});
+  assert.equal((await post("apply", token, {profile, expected})).status, 409);
+  assert.equal(reads, 1);
+  assert.deepEqual(writes, []);
+});
+
+test("Lokale Anwendung ohne Windows-Leser meldet die Fähigkeit als inaktiv", async t => {
+  const {origin, post} = await setup(t);
+  const session = await (await fetch(origin + "/api/session")).json();
+  assert.equal(session.windowsIso, false);
+  assert.equal((await post("windows-iso", session.token, {})).status, 409);
 });

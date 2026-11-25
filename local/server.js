@@ -53,7 +53,9 @@ async function readBody(req) {
   }
 }
 
-function createApp(adapter = new GPhotoAdapter()) {
+const nativeReader = process.platform === "win32" ? require("./windows/iso.js").readWindowsIso : null;
+
+function createApp(adapter = new GPhotoAdapter(), windowsIso = nativeReader) {
   const sessions = new Map();
   let busy = false;
   const server = http.createServer(async (req, res) => {
@@ -86,10 +88,10 @@ function createApp(adapter = new GPhotoAdapter()) {
         if (sessions.size >= 64) fail("busy", "Zu viele lokale Sitzungen. Anwendung neu starten.", 429);
         const token = randomBytes(32).toString("hex");
         sessions.set(token, {expires: now + SESSION_MS, snapshot: null});
-        json(res, 200, {token});
+        json(res, 200, {token, windowsIso: typeof windowsIso === "function"});
         return;
       }
-      if (!["/api/read", "/api/apply"].includes(route)) fail("missing", "Unbekannte Anfrage.", 404);
+      if (!["/api/read", "/api/apply", "/api/windows-iso"].includes(route)) fail("missing", "Unbekannte Anfrage.", 404);
       if (req.method !== "POST") fail("method", "Die Kamera-Aktion erfordert POST.", 405);
       if (req.headers.origin !== origin) fail("origin", "Lokalen Browserursprung prüfen.", 403);
       const session = sessions.get(req.headers["x-session"]);
@@ -100,7 +102,17 @@ function createApp(adapter = new GPhotoAdapter()) {
       busy = true;
       try {
         session.expires = Date.now() + SESSION_MS;
-        if (route === "/api/read") {
+        if (route === "/api/windows-iso") {
+          if (Object.keys(body).length) fail("format", "Die native ISO-Abfrage benötigt keine Parameter.", 400);
+          if (!windowsIso) fail("platform", "Das direkte ISO-Lesen benötigt die lokale Anwendung unter Windows.", 409);
+          // Die Windows-Lesung erzeugt keine Schreibvorschau und ersetzt den letzten Gerätestand.
+          for (const entry of sessions.values()) entry.snapshot = null;
+          const {model, iso} = await windowsIso();
+          if (model !== "ILCE-6400" || !(iso === "auto" || (Number.isSafeInteger(iso) && iso > 0))) {
+            fail("readback", "Windows hat keinen gültigen ISO-Wert der α6400 zurückgegeben.", 502);
+          }
+          json(res, 200, {model, iso});
+        } else if (route === "/api/read") {
           session.snapshot = null;
           if (Object.keys(body).length) fail("format", "Die Leseanfrage benötigt keine Parameter.", 400);
           const snapshot = await TransferEngine.readForPreview(adapter);

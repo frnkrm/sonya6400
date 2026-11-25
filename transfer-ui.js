@@ -22,6 +22,8 @@ const TransferUI = (() => {
   let snapshot;
   let simulation;
   let token;
+  let connecting;
+  let windowsIso = false;
   let revision = 0;
   let busy = false;
   let pendingRead = false;
@@ -80,7 +82,10 @@ const TransferUI = (() => {
             <p>Auf dem Kameracomputer <code>http://127.0.0.1:8765/</code> öffnen und das Profil laden.
               Die Prüfung an einer echten α6400 steht aus.</p>
           </div>
+          <p id="transfer-native-help" hidden>Für den Windows-Lesetest Imaging Edge Remote schließen und die Kamera
+            direkt mit Windows verbinden. Für Übertragungen dient die separate USB-Vorschau über gphoto2.</p>
           <div class="transfer-actions">
+            <button type="button" id="transfer-windows" class="chip" hidden>ISO über Windows lesen</button>
             <button type="button" id="transfer-read" class="chip">Simulationswerte lesen</button>
             <button type="button" id="transfer-iso" class="chip" disabled>Nur ISO übertragen</button>
             <button type="button" id="transfer-apply" class="chip on" disabled>Einstellungen übertragen</button>
@@ -110,8 +115,13 @@ const TransferUI = (() => {
     el("source").onchange = el("mode").onchange = () => {
       simulation = null;
       invalidate("Nicht verbunden. Istwerte für die gewählte Verbindung lesen.");
+      if (!isSim() && local) {
+        // Nur die Fähigkeiten der lokalen Anwendung erfragen. Geräte werden erst auf Klick gelesen.
+        connect().then(controls, controls);
+      }
     };
-    el("read").onclick = read;
+    el("read").onclick = () => read();
+    el("windows").onclick = () => read(true);
     el("apply").onclick = () => apply();
     el("iso").onclick = () => apply("iso");
   }
@@ -149,6 +159,9 @@ const TransferUI = (() => {
     const usb = !isSim();
     el("mode-label").hidden = usb;
     el("usb-help").hidden = !usb;
+    el("windows").hidden = !usb || !local || !windowsIso;
+    el("windows").disabled = busy || el("windows").hidden;
+    el("native-help").hidden = el("windows").hidden;
     el("read").textContent = usb ? "USB-Istwerte lesen" : "Simulationswerte lesen";
     el("read").disabled = busy || !profile() || (usb && !local);
     const ready = !busy && snapshot && profile()
@@ -228,7 +241,7 @@ const TransferUI = (() => {
 
   async function request(path, body) {
     // Für bis zu drei Felder je Vorprüfung, Schreiben und drei Rücklesungen zulassen.
-    const timeout = path === "/api/apply" ? 8 * 60_000 : path === "/api/read" ? 45_000 : 10_000;
+    const timeout = path === "/api/apply" ? 8 * 60_000 : path === "/api/session" ? 10_000 : 45_000;
     const options = {signal: AbortSignal.timeout(timeout), cache: "no-store", credentials: "same-origin", redirect: "error"};
     if (body) {
       options.method = "POST";
@@ -247,8 +260,20 @@ const TransferUI = (() => {
     return data;
   }
 
-  async function read() {
-    if (el("read").disabled || busy) return;
+  async function connect() {
+    if (token) return;
+    if (!connecting) {
+      connecting = request("/api/session").then(session => {
+        if (typeof session.token !== "string" || !session.token) throw new Error("Lokale Sitzung fehlt.");
+        token = session.token;
+        windowsIso = session.windowsIso === true;
+      }).finally(() => { connecting = null; });
+    }
+    await connecting;
+  }
+
+  async function read(native = false) {
+    if (el(native ? "windows" : "read").disabled || busy) return;
     busy = true;
     pendingRead = true;
     invalidate("Istwerte werden gelesen …");
@@ -259,11 +284,17 @@ const TransferUI = (() => {
         simulation ??= new TransferEngine.SimulationAdapter(el("mode").value);
         state = await simulation.read();
       } else {
-        if (!token) {
-          const session = await request("/api/session");
-          if (typeof session.token !== "string" || !session.token) throw new Error("Lokale Sitzung fehlt.");
+        await connect();
+        if (revision !== active) return;
+        if (native) {
+          const result = await request("/api/windows-iso", {});
           if (revision !== active) return;
-          token = session.token;
+          if (result.model !== "ILCE-6400" || !(result.iso === "auto" || (Number.isSafeInteger(result.iso) && result.iso > 0))) {
+            throw new Error("Kein gültiger ISO-Messwert der α6400.");
+          }
+          el("status").textContent = "Windows · Sony " + result.model + " · ISO " + value("iso", result.iso) +
+            " · gelesen um " + new Date().toLocaleTimeString("de-DE");
+          return;
         }
         state = await request("/api/read", {});
         if (state.source !== "usb") throw new Error("Die lokale Anwendung meldet keine USB-Kamera.");
