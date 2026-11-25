@@ -4,7 +4,7 @@ Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach 
 
 ## Windows-Rücklesung nach ISO-Änderung (v10)
 
-- Im Gerätetest mit v9 wechselte das Display der α6400 nach dem Windows-Schreibbefehl von ISO 400 auf ISO 500. Die Abfragen in der Schreibsitzung lieferten noch ISO 400. Bei diesem Ergebnis liest v10 nach kurzer Pause in einer neuen Sitzung derselben Kamera nach. Nur gelesene feste ISO 500 im Fotomodus M bestätigen den Schritt. [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
+- Im Gerätetest mit v9 wechselte das Display der α6400 nach dem Windows-Schreibbefehl von ISO 400 auf ISO 500. Die Abfragen in der Schreibsitzung lieferten noch ISO 400. Eine separat gestartete Windows-Lesung bestätigte anschließend ISO 500. Bei diesem Ergebnis liest v10 nach kurzer Pause in einer neuen Sitzung derselben Kamera nach. Nur gelesene feste ISO 500 im Fotomodus M bestätigen den Schritt. [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
 
 ## Einmaliger Windows-Test von ISO 400 auf 500 (v9)
 
