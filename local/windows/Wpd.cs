@@ -105,6 +105,8 @@ internal sealed class Wpd : IDisposable
     private static Key InstanceId = new Key(new Guid("78C34FC8-104A-4ACA-9EA4-524D52996E57"), 256);
     private static Key FriendlyName = new Key(new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 14);
 
+    private static Key DeviceDesc = new Key(FriendlyName.Format, 2);
+
     [DllImport("cfgmgr32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
     private static extern uint CM_Get_Device_Interface_PropertyW(string path, ref Key key,
         out uint type, [Out] byte[] buffer, ref uint size, uint flags);
@@ -117,6 +119,60 @@ internal sealed class Wpd : IDisposable
     [DllImport("cfgmgr32.dll", ExactSpelling = true)]
     private static extern uint CM_Get_DevNode_PropertyW(uint node, ref Key key, out uint type,
         [Out] byte[] buffer, ref uint size, uint flags);
+
+    // GUID_DEVINTERFACE_WPD, as returned by PnPUtil for the ILCE-6400.
+    private static Guid WpdInterfaceClass = new Guid("6AC27878-A6FA-4155-BA85-F98F491D4F33");
+    private const uint PresentInterfaces = 0, AllRegisteredInterfaces = 1;
+    private const uint CrBufferSmall = 0x1A;
+
+    [DllImport("cfgmgr32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+    private static extern uint CM_Get_Device_Interface_List_SizeW(out uint chars, ref Guid category,
+        string instance, uint flags);
+    [DllImport("cfgmgr32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+    private static extern uint CM_Get_Device_Interface_ListW(ref Guid category, string instance,
+        [Out, MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U2, SizeParamIndex = 3)]
+        char[] paths, uint chars, uint flags);
+
+    internal static List<string> PnpInterfaces(bool includeInactive)
+    {
+        uint flags = includeInactive ? AllRegisteredInterfaces : PresentInterfaces;
+        // Size is in WCHARs, including the final terminator of the MULTI_SZ.
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            uint chars;
+            uint result = CM_Get_Device_Interface_List_SizeW(out chars, ref WpdInterfaceClass, null, flags);
+            if (result != 0) throw ConfigError(result);
+            if (chars == 0 || chars > 1024 * 1024)
+                throw new InvalidDataException("Ungültige Größe der Windows-WPD-Schnittstellenliste.");
+            var paths = new char[chars];
+            result = CM_Get_Device_Interface_ListW(ref WpdInterfaceClass, null, paths, chars, flags);
+            if (result == CrBufferSmall) continue; // A device was added between the two calls.
+            if (result != 0) throw ConfigError(result);
+            return DecodeInterfaces(paths);
+        }
+        throw new InvalidOperationException("Die Windows-WPD-Schnittstellenliste hat sich während der Abfrage mehrfach geändert.");
+    }
+
+    private static InvalidOperationException ConfigError(uint code)
+    {
+        return new InvalidOperationException("Windows konnte die PnP-Liste der WPD-Schnittstellen nicht lesen (CM 0x" +
+            code.ToString("X") + ").");
+    }
+
+    internal static List<string> DecodeInterfaces(char[] paths)
+    {
+        var ids = new List<string>();
+        int start = 0;
+        while (start < paths.Length)
+        {
+            int end = Array.IndexOf(paths, '\0', start);
+            if (end == start) return ids;
+            if (end < 0) break;
+            ids.Add(new string(paths, start, end - start));
+            start = end + 1;
+        }
+        throw new InvalidDataException("Windows hat eine unvollständige WPD-Schnittstellenliste geliefert.");
+    }
 
     private static string PropertyString(uint result, byte[] buffer, uint type, uint size)
     {
@@ -147,14 +203,19 @@ internal sealed class Wpd : IDisposable
         return null;
     }
 
-    private static string UsbName(string instance)
+    private static string NodeProperty(uint node, ref Key key)
     {
-        uint node;
-        if (CM_Locate_DevNodeW(out node, instance, 0) != 0) return null;
         var buffer = new byte[4096];
         uint size = (uint)buffer.Length, type;
-        uint result = CM_Get_DevNode_PropertyW(node, ref FriendlyName, out type, buffer, ref size, 0);
+        uint result = CM_Get_DevNode_PropertyW(node, ref key, out type, buffer, ref size, 0);
         return PropertyString(result, buffer, type, size);
+    }
+
+    private static bool UsbModelMatches(string instance)
+    {
+        uint node;
+        if (instance == null || CM_Locate_DevNodeW(out node, instance, 0) != 0) return false;
+        return IsModel(NodeProperty(node, ref FriendlyName)) || IsModel(NodeProperty(node, ref DeviceDesc));
     }
 
     private delegate void EnumerateIds(IntPtr ids, ref uint count);
@@ -187,13 +248,13 @@ internal sealed class Wpd : IDisposable
         return ids;
     }
 
-    internal static string SelectEndpoint(List<string> standard, List<string> specialized,
-        Func<string, string> usbAncestor, Func<string, string, bool> modelMatches)
+    internal static string SelectEndpoint(List<string> standard, List<string> specialized, List<string> pnp,
+        Func<string, string> usbAncestor, Func<string, string, bool> modelMatches, Func<bool> hasInactiveSony)
     {
         var checkedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var cameras = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         bool wrongModel = false;
-        foreach (var group in new[] { standard, specialized })
+        foreach (var group in new[] { standard, specialized, pnp })
         {
             foreach (string id in group)
             {
@@ -208,8 +269,9 @@ internal sealed class Wpd : IDisposable
         if (cameras.Count > 1) throw new InvalidOperationException("Mehrere passende Kameras gefunden. Genau eine ILCE-6400 anschließen.");
         foreach (string id in cameras.Values) return id;
         if (wrongModel) throw new InvalidOperationException("Sony-USB-Kennung gefunden. Der Modellname ILCE-6400 konnte nicht bestätigt werden.");
-        if (checkedIds.Count == 0) throw new InvalidOperationException("Windows meldet keine WPD-Schnittstelle. Sony Remote schließen und die Kamera im Modus PC-Fernbedienung erneut anschließen.");
-        throw new InvalidOperationException(String.Format("WPD-Einträge: {0} regulär, {1} privat. Keiner ließ sich der USB-Kennung der α6400 zuordnen.", standard.Count, specialized.Count));
+        if (hasInactiveSony())
+            throw new InvalidOperationException("Windows führt eine inaktive WPD-Schnittstelle der α6400. Eine aktive passende Schnittstelle ist derzeit nicht verfügbar.");
+        throw new InvalidOperationException(String.Format("Keine passende α6400. WPD-Einträge: {0} regulär, {1} privat, {2} aktive WPD-Schnittstellen über Plug & Play.", standard.Count, specialized.Count, pnp.Count));
     }
 
     private static bool IsModel(string name)
@@ -231,10 +293,16 @@ internal sealed class Wpd : IDisposable
         manager.RefreshDeviceList();
         var standard = Endpoints(manager.GetDevices);
         var specialized = Endpoints(manager.GetPrivateDevices);
-        return SelectEndpoint(standard, specialized, UsbAncestor, delegate(string id, string usb)
+        var pnp = PnpInterfaces(includeInactive: false);
+        return SelectEndpoint(standard, specialized, pnp, UsbAncestor, delegate(string id, string usb)
         {
             // The model may be published on the USB devnode instead of the WPD endpoint.
-            return IsModel(WpdName(manager, id)) || (usb != null && IsModel(UsbName(usb)));
+            return UsbModelMatches(usb) || IsModel(WpdName(manager, id));
+        }, delegate
+        {
+            // Registrations for disconnected devices may survive. They serve only as diagnostics.
+            var live = new HashSet<string>(pnp, StringComparer.OrdinalIgnoreCase);
+            return PnpInterfaces(includeInactive: true).Exists(id => !live.Contains(id) && IsSonyUsbId(UsbAncestor(id) ?? id));
         });
     }
 

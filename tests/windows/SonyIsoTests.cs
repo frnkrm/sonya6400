@@ -74,17 +74,35 @@ internal static class SonyIsoTests
         var privateIds = new List<string> { "vendor-endpoint" };
         Func<string, string, bool> model = (endpoint, usb) => true;
         Func<string, string> resolve = id => id == "vendor-endpoint" ? sony : foreign;
-        Check(Wpd.SelectEndpoint(standard, privateIds, resolve, model) == "vendor-endpoint", "private opaque Sony endpoint");
-        Check(Wpd.SelectEndpoint(standard, privateIds, id => sony, model) == "opaque", "two aliases of one USB camera");
-        Check(Wpd.SelectEndpoint(new List<string> { sony }, empty, id => null, model) == sony, "direct ID fallback");
-        Check(Wpd.SelectEndpoint(standard, privateIds, id => sony, (id, usb) => id == "vendor-endpoint")
+        Func<bool> absent = () => false;
+        Check(Wpd.SelectEndpoint(standard, privateIds, empty, resolve, model, absent) == "vendor-endpoint", "private opaque Sony endpoint");
+        Check(Wpd.SelectEndpoint(standard, privateIds, empty, id => sony, model, absent) == "opaque", "two aliases of one USB camera");
+        Check(Wpd.SelectEndpoint(new List<string> { sony }, empty, empty, id => null, model, absent) == sony, "direct ID fallback");
+        Check(Wpd.SelectEndpoint(standard, privateIds, empty, id => sony, (id, usb) => id == "vendor-endpoint", absent)
             == "vendor-endpoint", "only the alias with confirmed model");
+
+        // The Windows report for b10226a: both manager lists are empty, PnP registers GUID_DEVINTERFACE_WPD.
+        var pnp = Wpd.DecodeInterfaces("other-interface\0sony-interface\0\0".ToCharArray());
+        Func<string, string> ancestor = id => id == "sony-interface" ? sony : foreign;
+        Check(Wpd.SelectEndpoint(empty, empty, pnp, ancestor, model, absent) == "sony-interface", "PnP-only α6400");
+        Check(Wpd.SelectEndpoint(standard, empty, pnp, id => sony, model, absent) == "opaque", "same camera in manager and PnP");
+        Check(Wpd.DecodeInterfaces(new char[1]).Count == 0, "empty MULTI_SZ");
+        Invalid(() => Wpd.DecodeInterfaces("incomplete\0".ToCharArray()), "missing final terminator");
+        try {
+            Wpd.SelectEndpoint(empty, empty, empty, ancestor, model, () => true);
+            throw new Exception("An inactive registration became selectable");
+        } catch (InvalidOperationException error) {
+            Check(error.Message.Contains("inaktive"), "registered but inactive WPD endpoint");
+        }
         foreach (var probe in new Action[] {
-            () => Wpd.SelectEndpoint(empty, empty, resolve, model),
-            () => Wpd.SelectEndpoint(standard, privateIds, id => null, model),
-            () => Wpd.SelectEndpoint(new List<string> { sony }, empty, id => foreign, model),
-            () => Wpd.SelectEndpoint(standard, privateIds, id => sony + id, model),
-            () => Wpd.SelectEndpoint(standard, privateIds, resolve, (id, usb) => false)
+            () => Wpd.SelectEndpoint(empty, empty, empty, resolve, model, absent),
+            () => Wpd.SelectEndpoint(standard, privateIds, empty, id => null, model, absent),
+            () => Wpd.SelectEndpoint(new List<string> { sony }, empty, empty, id => foreign, model, absent),
+            () => Wpd.SelectEndpoint(standard, privateIds, empty, id => sony + id, model, absent),
+            () => Wpd.SelectEndpoint(standard, privateIds, empty, resolve, (id, usb) => false, absent),
+            () => Wpd.SelectEndpoint(empty, empty, pnp, id => sony + id, model, absent),
+            () => Wpd.SelectEndpoint(empty, empty, pnp, id => foreign, model, absent),
+            () => Wpd.SelectEndpoint(empty, empty, pnp, ancestor, (id, usb) => false, absent)
         }) {
             try { probe(); }
             catch (InvalidOperationException) { passed++; continue; }
@@ -150,6 +168,8 @@ internal static class SonyIsoTests
             @"SWD\OTHER\_??_USB#VID_054C&PID_0CAA", @"USB\VID_ffff&PID_0CAA\USB\VID_054C&PID_0CAA"})
             if (Wpd.IsSonyUsbId(id)) throw new Exception("Unexpected Sony PnP ID");
         WpdSelection();
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            Console.WriteLine("Windows Configuration Manager: {0} active WPD interfaces.", Wpd.PnpInterfaces(false).Count);
         Console.WriteLine("WPD: 10 device ID checks passed.");
         Console.WriteLine("Sony ISO / WPD selection: {0} checks passed.", passed);
         return 0;

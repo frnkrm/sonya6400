@@ -4,6 +4,8 @@ Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach 
 
 ## Windows-Geräteerkennung beim ISO-Lesetest
 
+- Wenn der WPD-Manager leere Listen liefert, kann der ISO-Leser die gleiche Kamera über die aktive, von Plug & Play veröffentlichte WPD-Schnittstelle finden. Die USB-Kennung und das Modell müssen übereinstimmen.
+
 - Die Suche berücksichtigt öffentliche und private WPD-Endpunkte und deren Plug-&-Play-Zuordnung zur USB-Kamera. Modell, Hersteller- und Produktkennung werden vor der ISO-Abfrage geprüft. Die Fehlermeldung unterscheidet leere Listen von fehlender Zuordnung.
 - Der vorherige Versuch mit `5b6454c` endete am Gerät bereits bei der Endpunktsuche. Die [Windows-Anleitung](docs/WINDOWS-USB.md) beschreibt den unveränderten einmaligen Lesetest und die offenen Nachweise.
 
