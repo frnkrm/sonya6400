@@ -6,7 +6,7 @@ Stand: **25.11.2026** · fachliche Recherche zu den neun vorhandenen Objektivpro
 
 ## Zweck und Prüfgrenzen
 
-Diese Referenz sammelt Herstellerdaten, Modellgrenzen und praktische Aufnahmesituationen für die geplante Weiterentwicklung. **Alle 26 Punkte K-01 bis K-26 sind in [Plan 002](../plans/002-landschaft-und-kamerafunktionen.md) aufgenommen; die Funktionen sind noch nicht implementiert.** Die Kennungen entsprechen den Nummern 1–26 des Funktionskatalogs.
+Diese Referenz sammelt Herstellerdaten, Modellgrenzen und praktische Aufnahmesituationen für den Kompass und die Aufnahmehilfen. Zuordnung und Abnahme der 26 Punkte stehen in [Plan 002](../plans/002-landschaft-und-kamerafunktionen.md). Die Kennungen entsprechen den Nummern 1–26 des Funktionskatalogs.
 
 - **Herstellerangaben:** Quellen sind direkt bei Tabellen und Aussagen verlinkt. Kamerafunktionen beziehen sich auf die Sony ILCE-6400; bei Objektiven ist die konkrete Sony-E-Variante maßgeblich.
 - **Startwerte:** Die vorgeschlagenen Blenden, Zeiten und ISO-Bereiche sind Ausgangspunkte für Probebilder. Sie sind keine garantierten Optimalwerte und keine durchgeführten Kameratests.
@@ -65,7 +65,7 @@ Quelle: jeweilige Herstellerseite in der ersten Tabelle. Die Kleinbildwerte sind
 
 - Mit 210 mm ist dieselbe Zeit aus der Hand deutlich anspruchsvoller als mit 17 mm. Die aktuelle Zoomstellung muss deshalb in die Empfehlung einfließen.
 
-- Beim Sony 55–210 ist am langen Ende maximal f/6,3 möglich, beim Sony 16–50 und 18–135 maximal f/5,6. Zwischenwerte dürfen ohne verifizierte Daten nicht als genaue lineare Blendenkurve erfunden werden.
+- Beim Sony 55–210 ist am langen Ende maximal f/6,3 möglich, beim Sony 16–50 und 18–135 maximal f/5,6. Da die Offenblendenkurve zwischen den Endpunkten nicht belegt ist, verwendet der Kompass dort für Empfehlungen die Offenblende des langen Endes. Als größte angebotene Blendenzahl gelten bei den variablen Zooms vorsichtig f/22. Das genaue erreichbare Ende an einer bestimmten Zoomstellung lässt sich an der Kamera prüfen.
 
 - Die Sigma-Festbrennweiten 16/30/56 mm lassen sich laut Datenblatt nur bis f/16 schließen. Die Seite darf dort kein f/22 anbieten.
 
@@ -158,7 +158,7 @@ Die allgemeinen Aufnahmeprinzipien aus Nikon- und Tamron-Artikeln sind auf die �
 
 **Aufnahmecheck:** Die Kamera bietet Histogramm und elektronische Wasserwaage. Als kurzer Website-Ablauf bieten sich an: Horizont richten, Bildränder prüfen, Fokus setzen, Probebild, helle Bereiche und Details vergrößert ansehen. [Sony DISP-Anzeigen](https://helpguide.sony.net/ilc/1810/v1/en/contents/TP0002264659.html).
 
-## Vorhandene Hinweise, die überarbeitet werden sollten
+## Fachliche Korrekturen gegenüber dem Ausgangsstand
 
 Diese Punkte ergeben sich aus dem Abgleich des [untersuchten Website-Codes](https://github.com/frnkrm/sonya6400/blob/c1b50a9b7d7eddc2156225a6e25f53a691323eb1/index.html) mit den oben verlinkten Quellen.
 

@@ -1,112 +1,41 @@
-# Bestandsaufnahme
+# Projektstand
 
-Stand: **25.11.2026** · untersuchter Code: [`678e440`](https://github.com/frnkrm/sonya6400/commit/678e440489266b9fb514d9688f4d0f66c5a5543e).
+Stand 25. November 2026. Der Ausbau setzt auf dem dokumentierten Stand [83b1d4b](https://github.com/frnkrm/sonya6400/commit/83b1d4b29d70f95ce4b56254d9b8dc89539fb7ce) auf. Die Anforderungen und Einzelnachweise stehen in [Plan 001](plans/001-stabilisierung.md) und [Plan 002](plans/002-landschaft-und-kamerafunktionen.md).
 
-[Überblick](../README.md) · [Architektur](ARCHITECTURE.md) · [Roadmap](ROADMAP.md) · [Stabilisierung](plans/001-stabilisierung.md) · [Landschaft und Kamerafunktionen](plans/002-landschaft-und-kamerafunktionen.md)
+## Technische Befunde
 
-## Einschätzung
-
-- Die App ist eine überschaubare Grundlage zur Weiterentwicklung: direkt bearbeitbares HTML, CSS und JavaScript.
-- Die vorhandenen Funktionen reichen von Kameraempfehlungen bis zu Offline-Nutzung, Checklisten und Bildexport.
-- Die regulären Auswahlkombinationen werden strukturell verarbeitet. Einige Fehlerfälle benötigen Absicherung, insbesondere beim Start und im Offline-Cache.
-- Die bisherigen Dokumentationsänderungen beheben diese Fehler noch nicht. Die folgenden IDs dienen als gemeinsame Referenz für Pläne und spätere Änderungen.
-- Die Fachrecherche zur α6400 und zu den neun Objektivprofilen liegt mit Herstellerquellen vor. Alle **26 Erweiterungspunkte K-01 bis K-26** sind in [Plan 002](plans/002-landschaft-und-kamerafunktionen.md) aufgenommen; ihre Implementierung ist offen.
-
-## Was im Ausgangsstand vorhanden ist
-
-| Bereich | Festgestellter Stand |
-| --- | --- |
-| Repository | Öffentlich, Standardbranch `main`; Ausgangsstand mit einem Import-Commit und elf Dateien |
-| Anwendung | Fünf Bereiche, neun Objektivprofile, sechs Schnellstarts, fünf Setup-Karten |
-| Umsetzung | HTML/CSS/JavaScript in `index.html`; zusätzlicher Service Worker und Manifest |
-| Datenhaltung | Auswahl, Bag, zuletzt geöffneter Bereich und Checklisten in `localStorage` |
-| Externe Daten | Open-Meteo für Wetter nach Browser-Standortfreigabe |
-| Infrastruktur im Code | Kein Backend, keine Projektabhängigkeiten, kein Build-Skript |
-| Qualitätssicherung | Keine versionierte Testsuite oder GitHub-Actions-Konfiguration im Ausgangsstand |
-| Dokumentation | Im ursprünglichen Import keine Markdown-Dateien; anschließend Projekt- und Entwicklungsdokumentation ergänzt |
-
-Quellen: [ursprünglicher Dateibaum](https://github.com/frnkrm/sonya6400/tree/678e440489266b9fb514d9688f4d0f66c5a5543e), [Anwendung](../index.html), [Service Worker](../sw.js), [Manifest](../manifest.webmanifest).
-
-## Tatsächlich ausgeführte Prüfungen
-
-Die JavaScript-Funktionen wurden aus dem Originalcode in einer isolierten Node-Umgebung mit passenden Ersatzobjekten ausgeführt. Das war eine einmalige Analyse, keine bereits eingerichtete Testsuite.
-
-| Prüfung | Ergebnis |
-| --- | --- |
-| `calc()`, `steps()` und Bokeh-Arithmetik für 9 × 4 × 4 × 3 × 2 Auswahlen | **864 von 864** ohne Ausnahme, fehlende Kernfelder oder nicht endliche Bokeh-Werte |
-| Spezieller ungültiger Einstellungslink | Fehler bei der Verarbeitung reproduziert, siehe F-01 |
-| Navigation mit simulierter HTTP-404-Antwort | Überschreiben des Offline-Eintrags reproduziert, siehe F-02 |
-| Wetterantwort nach manueller Lichtwahl | Überschreiben der manuellen Wahl reproduziert, siehe F-03 |
-| `wname(85)` und `wname(86)` | Ausgabe „Gewitter“ reproduziert, siehe F-04 |
-
-**Grenzen:** Die 864 Fälle bestätigen Datenverarbeitung, nicht fotografische Richtigkeit. Vollständige Browser-, Mobilgeräte-, Installations-, Screenreader- und Live-Deployment-Tests wurden bei dieser Bestandsaufnahme nicht durchgeführt. Für den Import-Commit wurden keine GitHub-Checks oder Commit-Statusmeldungen gemeldet; daraus folgt kein erfolgreicher CI-Lauf.
-
-## Nachgewiesene Fehler
-
-### F-01 · P1 · Ungültige Auswahlwerte können den Start abbrechen
-
-- **Status:** offen; isoliert reproduziert.
-- **Stellen:** `index.html`, Einlesen von `st`, `readHash()`, `render()`.
-- Gespeicherte Zustandswerte werden ohne vollständige Prüfung gegen erlaubte IDs übernommen.
-- Die Prüfung in `readHash()` akzeptiert auch geerbte Objekt-Eigenschaften. Beispiel für ein lokales Testprofil: `#s=constructor.tag.steh.bokeh.tam`.
-- Der Link wird angenommen; später scheitert die Verarbeitung mit `o.fl.split is not a function`.
-- **Ziel:** Ein gemeinsamer Validator für alle fünf Auswahlfelder; ungültige Speicherwerte und Links führen zu sicheren Standardwerten. Bestehende gültige Links bleiben verwendbar.
-
-### F-02 · P1 · Andere Seiten können den Offline-Einstieg überschreiben
-
-- **Status:** offen; mit simuliertem Fetch-Ereignis reproduziert.
-- **Stelle:** `sw.js`, Navigationszweig im Fetch-Handler.
-- Jede Navigation derselben Origin speichert die Antwort unter `index.html`, auch andere Dokumente und HTTP-Fehler.
-- Eine simulierte 404-Antwort für `/missing-page` wurde tatsächlich unter diesem Schlüssel gespeichert.
-- **Folge:** Der nächste Offline-Start kann den falschen Inhalt erhalten. Das betrifft möglicherweise auch direkt besuchte, auf Netlify veröffentlichte Markdown-Dateien.
-- **Ziel:** Nur erfolgreiche Antworten für den vorgesehenen App-Einstieg aktualisieren dessen Cache; Fehler und andere Dokumente lassen ihn intakt.
-
-### F-03 · P2 · Wetterantwort überschreibt eine manuelle Lichtwahl
-
-- **Status:** offen; Zustandsänderung isoliert reproduziert.
-- **Stellen:** `index.html`, Auswahl-Listener, `detect()`, `setLight()`.
-- Ein verspätetes Messergebnis schreibt bedingungslos in `st.licht`.
-- Simulation: manuell `daemm` gesetzt, danach Wetterantwort mit `tag` verarbeitet; Ergebnis ist `tag`.
-- **Ziel:** Manuelle Auswahl seit Beginn einer Anfrage behält Vorrang. Überholte Anfragen dürfen keine aktuellen Werte ersetzen.
-
-### F-04 · P3 · Schneeschauer werden als Gewitter beschriftet
-
-- **Status:** offen; Funktionsausgabe reproduziert und mit der API-Dokumentation abgeglichen.
-- **Stelle:** `index.html`, `wname()`.
-- Für die Codes 85 und 86 ergibt die vorhandene Bereichslogik „Gewitter“. Laut [Open-Meteo-Wettercodetabelle](https://open-meteo.com/en/docs?past_days=1) bezeichnen sie Schneeschauer.
-- **Ziel:** Explizite Zuordnung der dokumentierten Wettercodes und neutrale Darstellung unbekannter Werte.
-
-## Weitere Befunde mit offenen Browserprüfungen
-
-| ID | Prio | Codebefund | Noch zu prüfen / Ziel |
-| --- | --- | --- | --- |
-| F-05 | P2 | `render()` ersetzt die Auswahlknöpfe bei jedem Klick vollständig | Tastaturfokus nach Enter/Leertaste erhalten; im Browser prüfen |
-| F-06 | P2 | `sw.js` ignoriert einzelne Installationsfehler und löscht alle anderen Cache-Namen der Origin | Kritische Offline-Dateien verlässlich sichern; nur eigene alte Caches löschen; Fehlerfälle im Browser prüfen |
-| F-07 | P2 | `controllerchange` zeigt „Neue Version geladen“, ohne die offene Seite neu zu laden | Zwischen verfügbarem und tatsächlich angezeigtem Update unterscheiden; Alt-Tab und installierte App prüfen |
-
-Der Wetter-Fetch hat außerdem keinen eigenen Timeout und keine ausdrückliche HTTP-/Schema-Prüfung. Netzwerkabbrüche werden abgefangen; ein hängender oder formal unvollständiger Abruf ist gesondert zu behandeln.
-
-## Fachrecherche und eingeplante Erweiterungen
-
-Die [Fachreferenz zur α6400 und den Objektiven](research/sony-a6400-kamera-objektive.md) dokumentiert die Recherche vom **25.11.2026**. Sie enthält geprüfte Herstellerangaben, Quellen, praktische Startwerte und deren Grenzen. Die neun Profile belegen nicht den tatsächlichen Besitz aller neun Objektive.
-
-| Bereich | Dokumentationsstand | Umsetzung in der App |
+| ID | Fehler im Ausgangsstand | Korrektur und zugehöriger Prüfpfad |
 | --- | --- | --- |
-| Landschaft und Situationen, K-01 bis K-09 | Eigener Landschaftsablauf, Hand/Stativ, Wind, Nah-Fern-Schärfe, Fokus sowie Wasser, Dämmerung, Schnee/Nebel und Sterne eingeplant | Offen |
-| Kamera und Objektive, K-10 bis K-14 | Modellzuordnung, Brennweite, Blendenlimits, Stabilisierung und Ausschnittwahl recherchiert und eingeplant | Offen |
-| Bedienung und Hilfen, K-15 bis K-26 | Belichtung, Dateiformate, Verschluss, Langzeit, Filter, Intervall, Fokusserie, Diagnose, Checkliste und Begründungen eingeplant | Offen |
-| Bestehende fotografische Hinweise | Korrekturbedarf anhand der Quellen dokumentiert | Texte und Regeln noch nicht korrigiert |
+| F-01 | Ungültige Werte im Speicher oder Einstellungslink konnten den Start abbrechen. | Kernfelder und Zusatzwerte validieren, gültige Teilwerte erhalten. Tests mit beschädigtem JSON, leerem Bag, ungültiger Bereichs-ID sowie alten und erweiterten Links. |
+| F-02 | Fremde Dokumente und HTTP-Fehler konnten die Startseite im Offline-Cache ersetzen. | Nur App-Einstiege mit passender HTML-Fassung aktualisieren den Eintrag. Navigation über ein anderes Dokument und eine Fehlerseite vor dem Offline-Start prüfen. |
+| F-03 | Eine verspätete Wetterantwort überschreibt die manuelle Lichtwahl. | Anfragegeneration und Abbruchsignal verwenden. Manuelle Wahl, Schnellstart, neue Messung, Timeout und fehlerhafte Daten prüfen. |
+| F-04 | Schneeschauer erschienen als Gewitter. | Open-Meteo-Codes 85/86 als Schneeschauer, 95/96/99 als Gewitter, unbekannte Codes neutral ausgeben. |
+| F-05 | Nach einer Auswahl verlor der Knopf den Tastaturfokus. | Bei unveränderten Optionen dieselben DOM-Elemente weiterverwenden. Mit Enter und Leertaste sowie Fokuswechsel prüfen. |
+| F-06 | Unvollständige Installationen und Löschung fremder Caches waren möglich. | Pflichtdateien und Typen vor Aktivierung prüfen. Eigene alte Caches gezielt erkennen. Installation mit einer fehlenden Datei und einem fremden Cache prüfen. |
+| F-07 | Alter HTML-Code meldete bei Controllerwechsel bereits die neue Version. | Nach dem Wechsel bringt eine Navigation den geöffneten App-Einstieg auf den installierten Stand. Test vergleicht die tatsächlich geladene Fassung. |
 
-Die vollständige Zuordnung der 26 Punkte und ihre Abnahmekriterien stehen in [Plan 002](plans/002-landschaft-und-kamerafunktionen.md), die Reihenfolge in der [Roadmap](ROADMAP.md). Die Einplanung ist kein Nachweis einer fertigen Funktion oder eines durchgeführten Kamera- beziehungsweise Browsertests. Die bereits bekannten technischen Befunde **F-01 bis F-07 bleiben offen**.
+## Ausgeführte Prüfungen
 
-## Fachliche Korrekturen und organisatorische offene Punkte
+Alle 16 Regel- und 25 Chromium-Tests bestanden am 25. November 2026. [Funktionscommit 57b8df8](https://github.com/frnkrm/sonya6400/commit/57b8df83418377e44b2fc625dd3f8fdcd75ee7b5)
 
-- Die recherchierten Grenzen in die tatsächlichen App-Regeln und Bedienhinweise übernehmen: etwa „1/125 s oder kürzer“, ISO AUTO Min. SS als Umschaltschwelle, objektivabhängige Stabilisierung und Blendenlimits. Unbelegte Garantien zu RAW-Clipping, ISO-Invarianz oder einem gemessenen Objektiv-„Sweetspot“ überarbeiten. Nachweise und Zuordnung stehen in der [Fachreferenz](research/sony-a6400-kamera-objektive.md).
-- Die drei internen Speicher sind **kein festgestellter Fehler**: [Sonys α6400-Hilfe](https://helpguide.sony.net/ilc/1810/v1/de/contents/TP0002242297.html) beschreibt drei interne Speicher und zusätzliche Kartenplätze.
-- Es fehlt eine festgelegte Projektlizenz. Die Wahl bleibt eine Entscheidung des Repository-Inhabers; diese Dokumentation ergänzt keine Lizenz.
-- Aktueller Produktionsbranch, Publish-Verzeichnis und ein vollständiger Git-basierter Deploy sind im Netlify-Dashboard noch gesondert zu verifizieren. [DEVELOPMENT](DEVELOPMENT.md) enthält passende Sollwerte.
-- Alle 26 recherchierten Produktwünsche sind zur Entwicklung eingeplant. Die [Roadmap](ROADMAP.md) und [Plan 002](plans/002-landschaft-und-kamerafunktionen.md) beschreiben die Arbeitspakete; Termine und eine fertige Umsetzung sind damit nicht zugesagt. Weitere Ideen im Ideenparkplatz bleiben gesonderte Vorschläge.
+Die elf Kameraregeltests prüfen unter anderem 864 ältere Auswahlkombinationen an beiden Brennweiten-Enden. Fünf Rechentests betreffen Reihen/HDR, BULB, ND, Intervall und Schärfentiefe. Die Browserfälle nutzen lokale, kontrollierte Wetter- und HTTP-Antworten. Auf der Desktop-PWA lief der Updateversuch vom importierten v3-Stand aus.
 
-## Pflege dieser Bestandsaufnahme
+| Browserprüfung | Ergebnis |
+| --- | --- |
+| Zustand, Tastatur und Wetter | 13 bestanden. Einzelheiten im [Stabilisierungsplan](plans/001-stabilisierung.md) |
+| Landschaft, Objektiv, Checkliste | 4 bestanden |
+| Foto-Werkzeuge und Diagnose | 4 bestanden |
+| Offline-Start und Update einer installierten PWA | 2 bestanden |
+| Integrierte Slots, Mobilansicht und Offline-PNG | 2 bestanden |
 
-Bei einer Korrektur den Status der betreffenden ID ergänzen: Datum, Fix-Commit und tatsächlich ausgeführte Prüfung. Ein Eintrag bleibt offen, solange nur ein Plan oder eine Codeänderung ohne passenden Nachweis vorliegt. Neue Fehler erhalten eine neue ID; bestehende IDs nicht neu vergeben.
+## Qualität und Grenzen
+
+- Die [Entwicklungsanleitung](DEVELOPMENT.md) enthält die Befehle für unabhängige Testläufe. Die Ergebnisprotokolle der Pläne nennen die beobachteten Resultate.
+- Herstellerquellen belegen Gerätefunktionen und Objektivgrenzen. Vorschläge für Wind, Handhaltung, Sternspuren und Schärfentiefe bleiben Startwerte für Probebilder. Praktische Aufnahmen mit Kamera und Objektiven stehen aus.
+- Native Mobilgeräte, VoiceOver/TalkBack, System-Teilen und die Installation auf einem realen Handy erfordern gesonderte Prüfungen. Die Browserprüfungen der Landschaftsansicht und Werkzeuge liefen mit 320 beziehungsweise 360 Pixeln Ansichtsbreite.
+- Die drei internen Kameraspeicher und die zusätzlichen Kartenplätze entsprechen der [Sony-Hilfe](https://helpguide.sony.net/ilc/1810/v1/de/contents/TP0002242297.html).
+- Die Projektlizenz ist offen.
+
+## Veröffentlichung
+
+Zielbranch ist `main`. Der lokale Softwarestand ist abgenommen. Die Produktionsprüfung für OPS-01 ist offen. Beim Abruf der Produktionsdomain antwortete der Cloud-Proxy mit HTTP 403 auf CONNECT. Auch der Netlify-Status am GitHub-Commit war über die API aus dieser Umgebung gesperrt. Eine erfolgreiche Veröffentlichung auf Netlify muss anhand des zugehörigen Deploys und der Live-Fassung bestätigt werden. [Produktionsseite](https://sonyalpha6400.frnkrm.com/)

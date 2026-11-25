@@ -1,6 +1,6 @@
 # Plan 001 — Start, Offline-Cache und Wetterwahl stabilisieren
 
-- **Status:** Vorgeschlagen; Implementierung noch nicht begonnen.
+- **Status:** In Chromium mit frischem Profil, geöffnetem v3-Tab und installierter Desktop-Web-App lokal abgenommen.
 - **Erstellt:** 25.11.2026.
 - **Basis:** [`678e440`](https://github.com/frnkrm/sonya6400/commit/678e440489266b9fb514d9688f4d0f66c5a5543e).
 - **Befunde:** [F-01, F-02, F-03](../STATUS.md).
@@ -18,11 +18,11 @@ Ein neues Design, neue Objektive, eigene Presets und eine vollständige Aufteilu
 
 ## Schritt 1 — Auswahlwerte absichern
 
-- [ ] Eine gemeinsame Normalisierung für `lens`, `motiv`, `licht`, `bew` und `look` festlegen.
-- [ ] Nur ausdrücklich vorhandene IDs akzeptieren; geerbte Eigenschaften nicht als Datenwerte behandeln.
-- [ ] Gespeicherten Zustand, Bag und Einstellungslinks vor ihrer Verwendung prüfen.
-- [ ] Fehlerhafte Einzelwerte auf passende Defaults zurücksetzen; gültige gespeicherte Werte möglichst erhalten.
-- [ ] Bag mindestens mit einem gültigen Objektiv initialisieren; gespeicherte Bereichs-ID auf die fünf echten Bereiche begrenzen.
+- [x] Eine gemeinsame Normalisierung für `lens`, `motiv`, `licht`, `bew` und `look` festlegen.
+- [x] Nur ausdrücklich vorhandene IDs akzeptieren; geerbte Eigenschaften nicht als Datenwerte behandeln.
+- [x] Gespeicherten Zustand, Bag und Einstellungslinks vor ihrer Verwendung prüfen.
+- [x] Fehlerhafte Einzelwerte auf passende Defaults zurücksetzen; gültige gespeicherte Werte möglichst erhalten.
+- [x] Bag mindestens mit einem gültigen Objektiv initialisieren; gespeicherte Bereichs-ID auf die fünf echten Bereiche begrenzen.
 
 **Abnahme:**
 
@@ -33,11 +33,11 @@ Ein neues Design, neue Objektive, eigene Presets und eine vollständige Aufteilu
 
 ## Schritt 2 — Offline-Einstieg schützen
 
-- [ ] Festlegen, welche URLs die App-Startseite repräsentieren: insbesondere `/` und `/index.html` im jeweiligen App-Scope.
-- [ ] Nur erfolgreiche, geeignete App-Antworten unter dem Offline-Einstieg speichern.
-- [ ] Andere Dokumente und HTTP-Fehler vom Aktualisieren dieses Eintrags ausschließen.
-- [ ] Verhalten bei Netzfehler, Serverfehler und fehlendem Offline-Cache getrennt behandeln.
-- [ ] Cache-Version für diese Runtime-Änderung erhöhen; vorhandene Nutzer bei der Umstellung berücksichtigen.
+- [x] Festlegen, welche URLs die App-Startseite repräsentieren: insbesondere `/` und `/index.html` im jeweiligen App-Scope.
+- [x] Nur erfolgreiche, geeignete App-Antworten unter dem Offline-Einstieg speichern.
+- [x] Andere Dokumente und HTTP-Fehler vom Aktualisieren dieses Eintrags ausschließen.
+- [x] Verhalten bei Netzfehler, Serverfehler und fehlendem Offline-Cache getrennt behandeln.
+- [x] Cache-Version für diese Runtime-Änderung erhöhen; vorhandene Nutzer bei der Umstellung berücksichtigen.
 
 **Abnahme:**
 
@@ -48,13 +48,13 @@ Ein neues Design, neue Objektive, eigene Presets und eine vollständige Aufteilu
 
 ## Schritt 3 — Absicht bei der Lichtwahl erhalten
 
-- [ ] Eine eindeutige Kennung für die aktuelle Wetteranfrage beziehungsweise den Auswahlstand einführen.
-- [ ] Späte Ergebnisse ignorieren, wenn seit ihrem Start manuell Licht oder ein Preset gewählt wurde.
-- [ ] Mehrfaches „Neu messen“ so behandeln, dass nur die aktuelle Anfrage übernehmen kann.
-- [ ] Wetter-Fetch zeitlich begrenzen und Antwortstatus sowie erforderliche Werte prüfen.
-- [ ] Uhrzeit-Fallback als Schätzung anzeigen und ebenfalls vor dem Überschreiben neuer manueller Eingaben schützen.
+- [x] Eine eindeutige Kennung für die aktuelle Wetteranfrage beziehungsweise den Auswahlstand einführen.
+- [x] Späte Ergebnisse ignorieren, wenn seit ihrem Start manuell Licht oder ein Preset gewählt wurde.
+- [x] Mehrfaches „Neu messen“ so behandeln, dass nur die aktuelle Anfrage übernehmen kann.
+- [x] Wetter-Fetch zeitlich begrenzen und Antwortstatus sowie erforderliche Werte prüfen.
+- [x] Uhrzeit-Fallback als Schätzung anzeigen und ebenfalls vor dem Überschreiben neuer manueller Eingaben schützen.
 
-**Vorgeschlagenes Verhalten:** „Neu messen“ startet bewusst eine neue automatische Ermittlung. Eine danach vorgenommene manuelle Auswahl hat Vorrang. Diese Bedienentscheidung vor der Implementierung im Plan festhalten.
+**Bedienentscheidung:** „Neu messen“ startet eine neue automatische Ermittlung. Wer danach das Licht manuell oder über einen Schnellstart auswählt, behält diese Wahl.
 
 **Abnahme:**
 
@@ -73,6 +73,10 @@ Ein neues Design, neue Objektive, eigene Presets und eine vollständige Aufteilu
 
 ## Ergebnisprotokoll
 
-Noch keine Implementierung, kein Fix-Commit und keine Abnahme erfolgt.
+[Funktionscommit 57b8df8](https://github.com/frnkrm/sonya6400/commit/57b8df83418377e44b2fc625dd3f8fdcd75ee7b5)
 
-Bei Umsetzung ergänzen: Commit(s), ausgeführte Prüfungen, Browser/Geräte, Deployment-Ergebnis und verbleibende Einschränkungen.
+- **F-01, F-03, F-04, F-05:** Dreizehn Chromium-Tests in [stability.py](../../tests/stability.py) bestanden. Sie prüfen beschädigte und teilweise gültige Altdaten, den früheren und erweiterten Einstellungslink, deaktivierten Speicher, fehlgeschlagene Schreibzugriffe, Enter und Leertaste sowie verzögerte, überholte, unbekannte und fehlerhafte Wetterantworten. Ein Linkwechsel im selben Tab öffnete den Kompass. Nach einer manuellen Änderung und einem Reload blieben die geänderte Auswahl und der danach gewählte Bereich erhalten. Der Wetter-Timeout wurde mit einer virtuellen Uhr ausgelöst.
+- **Lichtwahl:** Ein manuell gespeicherter Wert bleibt über einen Neustart erhalten. Ein zuvor automatisch übernommener Wert darf beim nächsten regulären Besuch aktualisiert werden. Ein gültiger Einstellungslink löst beim Laden keine neue Messung aus.
+
+- **F-02, F-06, F-07:** Die beiden [PWA-Tests](../../tests/pwa.py) bestanden in Chromium. Ein anderes Dokument, eine 404/500-Antwort und eine Seite mit fremdem HTML ließen den Offline-Einstieg intakt. Ein fehlendes Pflichtmodul verhinderte die Aktivierung der neuen Fassung. Nach dessen Wiederherstellung wechselten der offene v3-Tab und die über Chromium installierte v3-App auf die neue HTML-Version. Gespeicherter Haken und fremder Cache blieben erhalten.
+- **F-01, reguläre Auswahl:** [Kameraregeltests](../../tests/camera.test.js) prüften die 864 vorhandenen Kombinationen bei beiden Zoom-Endwerten einschließlich berechneter Zeit und Bedienfolge.

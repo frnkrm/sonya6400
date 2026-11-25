@@ -1,6 +1,6 @@
 # Sony α6400 Spickzettel
 
-Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Porträt, Street, Gruppenfotos und City Lights.
+Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Landschaft, Porträt, Street, Gruppenfotos und City Lights.
 
 **[Website öffnen](https://sonyalpha6400.frnkrm.com/)** · **[Repository](https://github.com/frnkrm/sonya6400)** · **[Entwicklungsstand](docs/STATUS.md)**
 
@@ -17,22 +17,17 @@ Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Porträt, Street, Gru
 
 Die App zeigt Empfehlungen. Sie steuert keine Kamera und überträgt keine Einstellungen an die α6400.
 
-## Eingeplante Weiterentwicklung
+## Eine Landschaftsaufnahme vorbereiten
 
-**Alle 26 recherchierten Funktionen sind in [Plan 002](docs/plans/002-landschaft-und-kamerafunktionen.md) aufgenommen.** Die Umsetzung ist offen.
+Wähle im Kompass **Landschaft**, dein Objektiv und die aktuelle Brennweite. Für bewegte Blätter kannst du Wind angeben. Bei einem Wasserfall entscheidest du, ob das Wasser weich oder eingefroren erscheinen soll. Der Kompass zeigt die dazugehörigen Startwerte und führt dich durch die Kontrolle am Probebild.
 
-- Eigener Landschaftsmodus für Berge, Wälder und Seen mit Hand-/Stativwahl, Wind und Nah-Fern-Schärfe.
-- Situationen wie Wasser, Sonnenaufgang, Schnee/Nebel und Sternenhimmel.
-- Genauere Objektivdaten, verfügbare Blenden und passende Stabilisierung.
-- Hilfen für Belichtung, Fokus, RAW/JPEG, Filter, Langzeitbelichtung, Intervall und Fehlerdiagnose.
-
-Die [Fachreferenz](docs/research/sony-a6400-kamera-objektive.md) enthält den Vergleich der neun Objektivprofile, praktische Startwerte und Herstellerquellen. Die [Roadmap](docs/ROADMAP.md) führt alle Punkte mit Status und ordnet sie neben der bestehenden Stabilisierung ein.
+Zu den aufklappbaren Hilfen gehören ND-Filter, Intervallaufnahmen, Langzeitbelichtung und Schärfentiefe. Bei einem misslungenen Foto hilft die Fehlerdiagnose, den nächsten Versuch zu planen. Modellgrenzen und Herstellerquellen stehen in der [Fachreferenz](docs/research/sony-a6400-kamera-objektive.md).
 
 ## Technischer Stand
 
 - Statische Website mit **HTML, CSS und JavaScript**, aus Netlify nach GitHub exportiert.
-- Der bearbeitbare Anwendungscode steckt in [`index.html`](index.html); Offline-Verhalten in [`sw.js`](sw.js).
-- Kein Framework, Backend, Paketmanager oder Build-Schritt im Ausgangsstand.
+- Der Kompass startet in [index.html](index.html). Die zuständigen Regel- und Oberflächenmodule beschreibt die [Architektur](docs/ARCHITECTURE.md).
+- Der Browser lädt die Projektdateien direkt. Python 3 genügt für den lokalen Webserver.
 - Einstellungen bleiben lokal im Browser. Für die Wetterfunktion werden nach Standortfreigabe gerundete Koordinaten an Open-Meteo gesendet.
 - Bekannte technische Befunde und noch nicht geprüfte fachliche Aussagen stehen in [STATUS](docs/STATUS.md).
 
@@ -55,7 +50,7 @@ Dann **[http://localhost:8080/](http://localhost:8080/)** öffnen. Datei bearbei
 | Datei | Wofür? |
 | --- | --- |
 | [STATUS](docs/STATUS.md) | Bestandsaufnahme, konkrete Befunde und Grenzen der bisherigen Prüfung |
-| [ROADMAP](docs/ROADMAP.md) | Prioritäten, bestehende Befunde und alle 26 eingeplanten Funktionen |
+| [ROADMAP](docs/ROADMAP.md) | Arbeitsstand, Prüfgrenzen und Ideen für spätere Vorhaben |
 | [Erster Plan: Stabilisierung](docs/plans/001-stabilisierung.md) | Konkretes erstes Arbeitspaket mit Abnahmekriterien |
 | [Plan 002: Landschaft und Kamerafunktionen](docs/plans/002-landschaft-und-kamerafunktionen.md) | Anforderungen und Abnahmekriterien für die 26 Punkte K-01 bis K-26 |
 | [Kamera- und Objektivrecherche](docs/research/sony-a6400-kamera-objektive.md) | Herstellerdaten, Aufnahmebeispiele, Grenzen und Quellen |
@@ -65,7 +60,7 @@ Dann **[http://localhost:8080/](http://localhost:8080/)** öffnen. Datei bearbei
 | [AGENTS](AGENTS.md) | Projektregeln für spätere Entwicklungsaufträge und KI-Agenten |
 | [CHANGELOG](CHANGELOG.md) | Nachvollziehbare Änderungen am Projekt |
 
-Für ein neues Vorhaben zuerst STATUS und ROADMAP lesen, dann die Planvorlage verwenden. Die Pläne beschreiben künftige Arbeit; offene Punkte sind noch keine implementierten Funktionen.
+Für ein neues Vorhaben zuerst STATUS und ROADMAP lesen, dann die Planvorlage verwenden. In den Ergebnisprotokollen der Pläne stehen die Abnahmekriterien und die ausgeführten Prüfungen.
 
 ## Veröffentlichung
 

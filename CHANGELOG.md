@@ -2,6 +2,14 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## 2026-11-25 — Landschaftskompass und Aufnahmehilfen
+
+- Der Kompass berücksichtigt Landschaftsszene, Wind, Hand oder Stativ, nahen Vordergrund und die manuell gewählte Brennweite. Für Wasser kann die Zeichnung im Wasser oder in bewegten Blättern priorisiert werden.
+- Neun modellbezogene Objektivprofile liefern Blendenlimits, OSS/VC, Filtergewinde, Bildwinkel und Naheinstellgrenze. Kompass, Bedienfolge und PNG verwenden die gemeinsame Empfehlung.
+- Neue Hilfen begleiten RAW/JPEG, Reihen/HDR, Verschlusswahl, BULB und die Diagnose am Probebild. ND-, Intervall- und Schärfentiefenrechner verwenden die eingegebenen Aufnahmeparameter.
+- Gespeicherte Auswahlen und Einstellungslinks werden validiert. Die Lichtmessung berücksichtigt eine nachträgliche manuelle Auswahl. Der Offline-Cache prüft die Pflichtdateien und die HTML-Version.
+- Regressionstests decken Regeln und Browserabläufe ab. Prüfergebnisse, Geräteabdeckung und Veröffentlichungsstand stehen im [Projektstand](docs/STATUS.md).
+
 ## 2026-11-25 — Landschafts- und Kamerafunktionen eingeplant
 
 ### Ergänzt und aktualisiert

@@ -11,10 +11,10 @@ Diese Hinweise gelten für das gesamte Projekt. Konkrete aktuelle Nutzeraufträg
 
 ## Technischer Rahmen
 
-- Statische App ohne Build-System: HTML, CSS, Daten und Anwendungslogik in `index.html`.
+- Statische App ohne Build-System. Die Dateizuständigkeiten für Oberfläche, Objektivdaten, Regeln und Werkzeuge stehen in [ARCHITECTURE](docs/ARCHITECTURE.md).
 - `sw.js` verwaltet den Offline-Cache; `manifest.webmanifest` die Installation.
 - `_headers`, `robots.txt`, `sitemap.xml` und Bilddateien liegen im Stammverzeichnis.
-- Keine vorhandenen npm-Skripte, Frameworks, Testsuiten oder Serverfunktionen voraussetzen.
+- Für Regeländerungen die Node-Tests, für betroffene Browserabläufe die Playwright-Tests aus [DEVELOPMENT](docs/DEVELOPMENT.md) verwenden.
 - Neue Abhängigkeiten oder eine neue Architektur nur einführen, wenn der Auftrag das erfordert und der Nutzen klar ist.
 - Kleine, zusammenhängende Änderungen bevorzugen; fachliche Korrekturen und größere Umstrukturierungen getrennt halten.
 
@@ -25,7 +25,7 @@ Diese Hinweise gelten für das gesamte Projekt. Konkrete aktuelle Nutzeraufträg
 - Einstellungslinks: `#s=<motiv>.<licht>.<bew>.<look>.<lens>`.
 - Gespeicherte Werte und Linkparameter als ungeprüfte Eingaben behandeln. Erlaubte Werte über eigene Objekteigenschaften beziehungsweise explizite Wertemengen prüfen.
 - Bei Umbenennungen oder Formatänderungen vorhandene Links und gespeicherte Daten kompatibel übernehmen oder eine nachvollziehbare Migration ergänzen.
-- Nach Änderungen an Kameraempfehlungen `calc()`, `steps()`, `SL`, Wissenstexte und geteilte PNG-Karten auf Übereinstimmung prüfen.
+- Nach Änderungen an Kameraempfehlungen Kompass, Bedienfolge, Slots, Wissenstexte und geteilte PNG-Karten auf Übereinstimmung prüfen.
 - Neue Objektivprofile gegen alle betroffenen Motive, Lichtklassen und Blendenregeln prüfen.
 
 ## Fachliche Inhalte und Oberfläche
@@ -45,7 +45,7 @@ Diese Hinweise gelten für das gesamte Projekt. Konkrete aktuelle Nutzeraufträg
 - Relevante Prüfungen aus [DEVELOPMENT](docs/DEVELOPMENT.md) auswählen, statt für jede kleine Änderung die gesamte Liste abzuarbeiten.
 - Reine Markdown-Änderungen auf Richtigkeit, Pfade und Links prüfen; dafür keine unnötige App-Testserie aufbauen.
 - Bei Änderungen an Regeln, Speicherung oder Links gezielte Regressionstests vorsehen; bei Offline-Änderungen auch Netzfehler und bestehende Clients prüfen.
-- Die Service-Worker-Version bei Änderungen an gecachten Anwendungsdateien passend erhöhen und `SHELL` berücksichtigen. Dokumentationsänderungen allein benötigen das nicht.
+- Bei Änderungen an gecachten Anwendungsdateien die Service-Worker-Version und die HTML-Marke `app-release` zusammen erhöhen. Neue Pflichtdateien in `SHELL` aufnehmen. Dokumentationsänderungen allein benötigen das nicht.
 - Ausgeführte Prüfungen und verbleibende Grenzen ehrlich benennen. Nicht ausgeführte Browser-, Mobilgeräte- oder Live-Prüfungen nicht als bestanden ausgeben.
 - Bestandsaufnahme, Architektur, Planstatus und Changelog aktualisieren, soweit die Änderung sie betrifft.
 
