@@ -115,6 +115,8 @@ Die Belege und offenen Fragen stehen in der [Fachreferenz](../research/sony-a640
 
 ## Ergebnisprotokoll
 
+**Manueller Simulationstest unter Windows.** Für das importierte Profil `a6400-M-17mm.json` zeigte die lokale Vorschau im simulierten Modus M zunächst ISO 200, f/4 und 1/60 s. Nach „Einstellungen übertragen“ meldete sie für ISO Auto, f/3,5 und 1/125 s jeweils „Rücklesung bestätigt“. Die Auto-ISO-Grenzen 100–12.800 waren als manueller Schritt aufgeführt. Der USB-Vergleich dieses Profils mit der α6400 steht in H-08 aus.
+
 **Integration:** 45 von 45 Node-Tests und 28 von 28 Chromium-Tests bestanden ohne Skip. Der PWA-Test aktualisierte den v4-Client auf v5 und öffnete die Profilansicht auch offline. Bei einer kontrollierten zweiten lokalen Origin verweigerte der Browser den Zugriff auf die lokale Kamerasitzung. Der Export-/Importweg blieb funktionsfähig.
 
 Fünf [Profiltests](../../tests/profile.test.js) und elf bestehende [Kameraregeltests](../../tests/camera.test.js) bestanden. Berücksichtigt wurden unter anderem A mit Zeitgrenze, feste ISO auf dem Stativ, feste Sekunden in M, alte Motive und ungültige Felder. Das A-Beispiel in der Architektur ließ sich mit dem v1-Validator einlesen.
