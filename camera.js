@@ -93,16 +93,19 @@
   }
 
   function autoThreshold(o, denominator) {
+    o.shutter = {kind: "minAuto", seconds: 1 / denominator};
     o.ss = String(denominator);
     o.t = "1/" + denominator + " s";
     o.how = "In A die Blende wählen. ISO AUTO Min. SS (P/A mit Auto ISO) auf " + o.t + " stellen. Ziel: " + o.t + " oder kürzer. Am ISO-Limit kann die Kamera länger belichten.";
   }
 
-  function fixedTime(o, time) {
+  function fixedTime(o, seconds) {
+    o.shutter = {kind: "fixed", seconds};
+    const time = (seconds < 0.5 ? "1/" + Math.round(1 / seconds) : String(seconds).replace(".", ",")) + " s";
     o.t = time;
     o.ss = time;
     o.how = "Im Modus M " + time + " einstellen. Zeit und Blende sind vorgegeben.";
-    if (o.iso.startsWith("Auto")) {
+    if (o.isoTarget.kind === "auto") {
       o.how += " Am Auto-ISO-Limit kann das Bild zu dunkel werden.";
     } else {
       o.evn = null;
@@ -123,21 +126,21 @@
       tripod, dark, arch: false, mode: "A", slot: "Landschaft", aperture: s.depth === "near" ? 11 : 8,
       focus: stars ? "MF" : "AF-S", fs: stars ? "Fokuslupe" : "Flex. Spot M",
       field: stars ? "Hellen Stern vergrößern" : "Flexible Spot M", evn: 0, ev: "0 EV als Ausgangspunkt",
-      iso: dark ? "Auto 100–6400" : "Auto 100–3200", drive: tripod ? "Selbstauslöser 2 s" : "Einzelbild",
+      isoTarget: {kind: "auto", min: 100, max: dark ? 6400 : 3200}, drive: tripod ? "Selbstauslöser 2 s" : "Einzelbild",
       drs: tripod ? "⏲ 2 s" : "Einzelbild", w: [], tip: []
     };
     if (stars) {
       o.mode = "M";
-      o.iso = "1600 (Testwert)";
+      o.isoTarget = {kind: "fixed", value: 1600};
       o.aperture = limits.open;
       const exposure = [8, 6, 5, 4, 3.2, 2.5, 2, 1.6, 1.3, 1, 0.8, 0.6, 0.5].find(time => time <= 128 / s.mm);
-      fixedTime(o, String(exposure).replace(".", ",") + " s");
+      fixedTime(o, exposure);
       o.reason = "Sterne bewegen sich im Bild. Kurze Brennweite, offene Blende und Stativ geben Spielraum für einen ersten Versuch.";
       o.tip.push("An einem hellen Stern mit MF und Fokuslupe fein einstellen. Auch am Unendlichanschlag vergrößert prüfen. Bei Strichen Zeit verkürzen und ISO nach dem Probebild anpassen.");
     } else if (soft) {
       o.mode = "M";
-      o.iso = "100 (fest)";
-      fixedTime(o, "1 s");
+      o.isoTarget = {kind: "fixed", value: 100};
+      fixedTime(o, 1);
       o.reason = "Für weiches Wasser soll während der Belichtung Bewegung sichtbar werden. Beginne auf einem festen Stativ mit einer Sekunde.";
       o.tip.push("Probebild bei fester ISO und Blende prüfen. Werden helle Wasserflächen zu hell, kann ein ND-Filter die gewünschte lange Zeit ermöglichen.");
       if (moving) o.w.push("Weiches Wasser hat Vorrang. Blätter im Wind verwischen ebenfalls. Für schärfere Blätter die Priorität wechseln.");
@@ -145,13 +148,14 @@
       o.mode = "M";
       const minimum = frozen ? (s.wind === "strong" ? 1000 : 500) : windMinimum;
       const denom = tripod ? minimum : handDenominator(s.mm, minimum);
-      fixedTime(o, "1/" + denom + " s");
+      fixedTime(o, 1 / denom);
       o.reason = frozen ? "Die kurze Zeit soll Strukturen im fließenden Wasser zeigen. Bei Schlieren weiter verkürzen." :
         "Wind bewegt Blätter und Gras auch am Stativ. Eine kurze Zeit begrenzt ihre Bewegung im Bild.";
       o.tip.push("Alternative S: Zeit für die Bewegung vorgeben und die von der Kamera gewählte Blende prüfen. In M bleiben beide Werte unter deiner Kontrolle.");
       if (water && s.water === "soft") o.w.push("Scharfe Blätter haben Vorrang. Das Wasser wirkt bei dieser Zeit weniger weich. Für beide Effekte getrennte Aufnahmen versuchen.");
     } else if (tripod) {
-      o.iso = "100 (fest)";
+      o.isoTarget = {kind: "fixed", value: 100};
+      o.shutter = {kind: "metered"};
       o.t = o.ss = "Auto";
       o.how = "Modus A mit ISO 100. Die Kamera misst die Zeit. Vor dem Auslösen auf Bewegung achten.";
       o.reason = "Das Stativ trägt die Kamera, die Szene ist ruhig. ISO 100 erlaubt eine längere Belichtung.";
@@ -178,20 +182,20 @@
 
   function legacyRecommendation(s, base, limits) {
     const o = {...base, tripod: Boolean(base.arch), w: [], tip: []};
-    o.aperture = Math.min(limits.closed, Math.max(limits.open, parseFloat(base.f)));
+    o.aperture = Math.min(limits.closed, Math.max(limits.open, base.aperture));
     if (o.arch) {
       o.reason = "Stativ und ruhige Architektur erlauben eine längere Belichtung bei ISO 100.";
+      o.shutter = {kind: "metered"};
       o.t = o.ss = "Auto";
       o.how = "In A die Zeit von der Kamera messen lassen. Für Lichtquellen f/8 als Startwert testen.";
     } else if (o.mode === "A") {
-      autoThreshold(o, handDenominator(s.mm, Number(base.ss)));
+      autoThreshold(o, handDenominator(s.mm, base.denominator));
       o.reason = s.motiv === "gruppe" ? "Mehrere Gesichter brauchen Schärfentiefe. Personen möglichst in einer Ebene aufstellen und auf die vordere Reihe fokussieren." :
         s.look === "bokeh" ? "Die große Öffnung trennt das Motiv vom Hintergrund." : "Leichtes Abblenden gibt Spielraum beim Fokussieren. Schärfe im Probebild prüfen.";
     } else {
-      const previous = Number(String(base.ss).match(/1\/(\d+)/)?.[1] || 125);
       const motion = s.bew === "act" ? 250 : s.bew === "geh" ? 125 : 30;
-      const denom = Math.max(previous, handDenominator(s.mm, motion));
-      fixedTime(o, "1/" + denom + " s");
+      const denom = Math.max(base.denominator, handDenominator(s.mm, motion));
+      fixedTime(o, 1 / denom);
       o.reason = "Bei wenig Licht hält M die Zeit für das Motiv fest. ISO nach dem Probebild prüfen.";
     }
     const zoom = profiles[s.lens].range[0] !== profiles[s.lens].range[1];
@@ -219,7 +223,7 @@
       "Unter MENU → Kameraeinstlg.1 die Fokusvergrößerung aufrufen. In den Peaking-Einstellungen die Kantenanzeige einschalten (engl. Peaking Setting → Peaking Display). Peaking markiert Kanten. Zur Schärfekontrolle vergrößern." :
       s.motiv === "portrait" ? "Gesicht und Auge kontrollieren." : "Den Fokuspunkt am Motiv prüfen."));
     rows.push("Bildfolge " + o.drive + ", Weißabgleich " + o.wb + ". " + o.formatLabel + " wählen. " +
-      (o.mode === "M" && !o.iso.startsWith("Auto") ? "Probebild aufnehmen, bei Bedarf Zeit, Blende oder ISO ändern." : "Belichtung mit " + o.ev + " beginnen und am Probebild prüfen."));
+      (o.mode === "M" && o.isoTarget.kind === "fixed" ? "Probebild aufnehmen, bei Bedarf Zeit, Blende oder ISO ändern." : "Belichtung mit " + o.ev + " beginnen und am Probebild prüfen."));
     if (s.motiv === "landscape") rows.push(...o.tip.filter(text => !text.startsWith("Bei dieser Zoomstellung")));
     return rows;
   }
@@ -229,6 +233,14 @@
     const limits = apertureLimits(s.lens, s.mm);
     const o = s.motiv === "landscape" ? landscape(s, limits) : legacyRecommendation(s, base, limits);
     o.aperture = Math.min(limits.closed, Math.max(limits.open, o.aperture));
+    o.profile = {
+      version: 1, model: "ILCE-6400", mode: o.mode,
+      lens: s.lens, focalMm: s.mm, aperture: o.aperture,
+      iso: o.isoTarget, shutter: o.shutter
+    };
+    const iso = o.isoTarget;
+    o.iso = iso.kind === "auto" ? "Auto " + iso.min + "–" + iso.max :
+      iso.value + (s.motiv === "landscape" && s.scene === "stars" ? " (Testwert)" : " (fest)");
     o.f = String(o.aperture);
     o.fl = s.mm + " mm";
     o.formatLabel = options.format.find(([key]) => key === s.format)[1];

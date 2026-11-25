@@ -1,0 +1,27 @@
+.transfer-body { overflow-wrap: anywhere; }
+.transfer-body a { color: var(--or2); }
+.transfer-body p { margin: 0.6rem 0; }
+.transfer-actions, .transfer-inputs { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; margin-block: 0.8rem; }
+.transfer-inputs label, .transfer-file { display: grid; gap: 0.25rem; min-width: 0; font-size: 0.9rem; }
+.transfer-body [hidden] { display: none; }
+.transfer-body button:disabled { opacity: 0.55; cursor: default; }
+.transfer-body select, .transfer-body input[type="file"] {
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0.5rem;
+  font: inherit;
+  color: var(--tx);
+  background: var(--s2);
+  border-radius: 0.65rem;
+  border: 1px solid #59606c;
+  color-scheme: dark;
+}
+#transfer-status { color: var(--or2); }
+.transfer-row { padding: 0.65rem 0; border-bottom: 1px solid var(--ln); }
+.transfer-field-status { margin-inline-start: 0.7rem; color: var(--mu); }
+.transfer-row p { margin: 0.15rem 0; }
+#transfer-manual ul { padding-inline-start: 1.2rem; }
+#transfer-manual h3 { margin-top: 1rem; }
+#transfer-capabilities dd { margin: 0 0 0.5rem; }
+.transfer-file { max-width: 100%; grid-template-columns: minmax(0, 1fr); }
+.transfer-file input { width: 100%; min-width: 0; }

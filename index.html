@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="app-release" content="v4">
+<meta name="app-release" content="v5">
 <title>Sony α6400 Spickzettel: Einstellungen für Landschaft, Porträt und Street</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0b0e">
@@ -133,6 +133,7 @@ code{background:var(--s2);padding:1px 7px;border-radius:7px}
 </style>
 <link rel="stylesheet" href="guide.css">
 <link rel="stylesheet" href="photo-tools.css">
+<link rel="stylesheet" href="transfer.css">
 </head>
 <body>
 <noscript><main style="padding:24px;max-width:640px;margin:auto"><h1>Sony α6400 Spickzettel</h1><p>Für den interaktiven Kamera-Spickzettel wird JavaScript benötigt. Er zeigt für die Sony Alpha 6400 passende Werte für Blende, Belichtungszeit, ISO, Fokus und Belichtungskorrektur bei Landschaft, Porträt, Street, Gruppenfoto und Nachtaufnahmen, dazu die Tastenbelegung, ein 5-Slot-Setup und einen Lightroom-Spickzettel für ARW-Dateien.</p></main></noscript>
@@ -160,6 +161,7 @@ code{background:var(--s2);padding:1px 7px;border-radius:7px}
 </div>
 <p class="sr" id="sr" role="status" aria-live="polite"></p>
 <button class="chip on shb" id="shb" type="button"><span>📤 Einstellung teilen</span></button>
+<div id="transfer"></div>
 <h2>So gehst du vor</h2><ol id="steps"></ol>
 <div id="guide-details"></div>
 <div id="photo-tools"></div>
@@ -227,6 +229,9 @@ code{background:var(--s2);padding:1px 7px;border-radius:7px}
 <script src="camera.js"></script>
 <script src="guide-ui.js"></script>
 <script src="photo-tools.js"></script>
+<script src="transfer-profile.js"></script>
+<script src="transfer-engine.js"></script>
+<script src="transfer-ui.js"></script>
 <script>
 (function(){
 "use strict";
@@ -387,6 +392,7 @@ function render(){
  }));
  GuideUI.render(st, o, bag, changeSelection);
  PhotoTools.render($("photo-tools"), st, o, changeSelection);
+ TransferUI.render($("transfer"), o.profile);
  if($("t2").classList.contains("on"))renderSlots();
 }
 var pb=$("pre");

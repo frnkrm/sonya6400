@@ -18,11 +18,13 @@ ROOT = Path(__file__).resolve().parents[1]
 RELEASE = re.search(r'const VERSION = "([^"]+)"', (ROOT / "sw.js").read_text())[1]
 # Diese Revision enthält den tatsächlich veröffentlichten v3-Client.
 V3 = "678e440489266b9fb514d9688f4d0f66c5a5543e"
+V4 = "1aa7cd744d18c9460127836e7d678ce6670a92ee"
 
 
 class Deploy(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urlsplit(self.path).path
+        asset = path.lstrip("/") or "index.html"
         if self.server.offline:
             self.connection.shutdown(socket.SHUT_RDWR)
             return
@@ -31,12 +33,12 @@ class Deploy(SimpleHTTPRequestHandler):
             return
         if path == self.server.wrong_html:
             data = b"<html><title>Andere Seite</title></html>"
-        elif self.server.legacy and path in ("/", "/index.html", "/sw.js"):
-            data = self.server.old_files["sw.js" if path == "/sw.js" else "index.html"]
+        elif self.server.legacy and asset in self.server.old_files:
+            data = self.server.old_files[asset]
         else:
             return super().do_GET()
         self.send_response(200)
-        self.send_header("Content-Type", "application/javascript" if path == "/sw.js" else "text/html")
+        self.send_header("Content-Type", "text/html" if path == self.server.wrong_html else self.guess_type(asset))
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -107,6 +109,24 @@ class OfflineAndUpdate(unittest.TestCase):
             self.assertIn(src, cached)
         self.tab.evaluate("async () => Promise.all((await caches.keys()).map(k => caches.delete(k)))")
         self.assertEqual(self.tab.reload().status, 503)
+
+    def test_v4_client_upgrades_to_offline_transfer_view(self):
+        self.http.old_files = {
+            name: subprocess.check_output(["git", "show", f"{V4}:{name}"], cwd=ROOT)
+            for name in ("index.html", "sw.js", "camera.js", "legacy.js", "guide-ui.js", "photo-tools.js")
+        }
+        self.http.legacy = True
+        self.open_app()
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", "v4")
+        self.assertEqual(self.tab.locator("#transfer-panel").count(), 0)
+        self.http.legacy = False
+        self.tab.evaluate("navigator.serviceWorker.ready.then(reg => reg.update()).then(() => true)")
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", RELEASE)
+        self.http.offline = True
+        self.assertTrue(self.tab.reload().from_service_worker)
+        self.tab.locator("#transfer-panel > summary").click()
+        self.tab.locator("#transfer-read").click()
+        expect(self.tab.locator("#transfer-status")).to_contain_text("Simulation")
 
     def test_failed_update_and_upgrade_of_existing_tab_and_installed_app(self):
         self.http.old_files = {

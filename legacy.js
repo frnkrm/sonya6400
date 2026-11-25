@@ -39,17 +39,16 @@
       : s.look === "bokeh" ? lens.open : dark ? lens.dim : sunny ? lens.daylight : lens.cloudy;
     const movement = {steh: 0, geh: 1, act: 2}[s.bew];
     const tele = s.lens === "t210";
-    let ss = "Auto";
+    let denominator = null;
     if (mode === "M") {
-      const denominator = tele ? [250, 500, 1000][movement]
+      denominator = tele ? [250, 500, 1000][movement]
         : city ? [30, 60, 250][movement] : [60, 125, 250][movement];
-      ss = "1/" + denominator + " s";
     } else if (!arch) {
-      ss = String((group && dark ? [60, 125, 250] : tele ? [250, 500, 1000] : [125, 250, 500])[movement]);
+      denominator = (group && dark ? [60, 125, 250] : tele ? [250, 500, 1000] : [125, 250, 500])[movement];
     }
     const maxISO = mode === "A" ? (dark ? 6400 : sunny ? 1600 : 3200)
       : city && movement < 2 ? 3200 : movement === 2 || s.licht === "nacht" ? 12800 : 6400;
-    const iso = arch ? "100 (fest)" : "Auto 100–" + maxISO;
+    const isoTarget = arch ? {kind: "fixed", value: 100} : {kind: "auto", min: 100, max: maxISO};
     const evn = arch ? 0 : city ? (dark ? -0.7 : -0.3)
       : sunny && s.motiv === "street" ? -0.3 : portrait && s.licht === "wolke" ? 0.3 : 0;
     const drive = arch ? "Selbstauslöser 2 s" : portrait ? "Serienbild Lo"
@@ -57,7 +56,7 @@
     return {
       framingSuggestion: typeof lens.framing === "string" ? lens.framing : lens.framing[s.motiv],
       groupDistance: group ? lens.groupDistance : null,
-      mode, arch, dark, slot, f: String(aperture), ss, iso, evn, ev: (evn > 0 ? "+" : "") + evn + " EV",
+      mode, arch, dark, slot, aperture, denominator, isoTarget, evn, ev: (evn > 0 ? "+" : "") + evn + " EV",
       drive, drs: drive, focus: arch ? "AF-S" : city && !movement ? "DMF oder AF-S" : "AF-C",
       fs: portrait ? "Spot M" : city ? "Flex. Spot M" : "Zone",
       field: portrait ? "Tracking: Spot M + Augen-AF" : group ? "Zone auf die vordere Reihe" : city ? "Flexible Spot M" : "Tracking: Zone",

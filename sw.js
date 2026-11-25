@@ -1,5 +1,5 @@
 /* Bei Änderungen an der App VERSION und die Versionsmarke in index.html erhöhen. */
-const VERSION = "v4";
+const VERSION = "v5";
 const SCOPE = self.registration.scope;
 const PREFIX = "a6400:" + SCOPE + ":";
 const CACHE = PREFIX + VERSION;
@@ -7,7 +7,8 @@ const ENTRY = new URL("index.html", SCOPE).href;
 const SHELL = [
   "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "icon-maskable-512.png", "apple-touch-icon.png", "og-image.png",
-  "camera.js", "legacy.js", "guide-ui.js", "guide.css", "photo-tools.js", "photo-tools.css"
+  "camera.js", "legacy.js", "guide-ui.js", "guide.css", "photo-tools.js", "photo-tools.css",
+  "transfer-profile.js", "transfer-engine.js", "transfer-ui.js", "transfer.css"
 ];
 const ASSETS = new Set(SHELL.map(name => new URL(name, SCOPE).href));
 const RELEASE_MARK = '<meta name="app-release" content="' + VERSION + '">';
