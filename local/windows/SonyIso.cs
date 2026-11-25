@@ -4,6 +4,9 @@
 // ISO encoding: libgphoto2/camlibs/ptp2/config.c, _stringify_Sony_ISO.
 using System;
 using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Globalization;
 using System.Threading;
 
@@ -55,7 +58,8 @@ internal static class SonyIso
             if (Kind == Field.Shutter && value == 0) return "BULB";
             if (Kind == Field.Shutter && IsNumeric(value) && value != uint.MaxValue)
                 return (value >> 16) + "/" + (value & 0xffff) + " s";
-            if (Kind == Field.Iso && value > 0 && value < 0xffffff) return "ISO " + value;
+            if (Kind == Field.Iso && value == AutoIso) return "ISO Auto";
+            if (Kind == Field.Iso && value > 0 && value < AutoIso) return "ISO " + value;
             return "Rohwert 0x" + value.ToString("X8");
         }
 
@@ -71,17 +75,133 @@ internal static class SonyIso
         new StepRule(Field.Shutter, 0xD20D, 6, 0x10000 | 125, 0x10000 | 160, "Zeit 1/125 s → 1/160 s")
     };
 
+    // The v200 exposure controls are relative. Even when the descriptor lists
+    // choices, no absolute property write is sent to this camera.
+    internal sealed class ProfileField
+    {
+        internal readonly uint? Current;
+        internal readonly uint[] Choices;
+        internal readonly bool Relative, Writable;
+
+        internal ProfileField(uint? current, uint[] choices, bool relative, bool writable)
+        {
+            Current = current;
+            Choices = choices;
+            Relative = relative && writable;
+            Writable = writable;
+        }
+
+        internal bool Accepts(Field field, uint target)
+        {
+            return Writable && ValidProfileValue(field, target) &&
+                (Relative || Choices.Any(choice => SameValue(field, choice, target)));
+        }
+    }
+
+    private const uint AutoIso = 0x00ffffff;
+
+    private static bool ValidProfileValue(Field field, uint raw)
+    {
+        switch (field)
+        {
+            case Field.Iso: return raw == AutoIso || (raw >= 25 && raw <= 409600);
+            case Field.Aperture: return raw > 0 && raw < ushort.MaxValue;
+            case Field.Shutter: return raw != uint.MaxValue && (raw >> 16) != 0 && (raw & 0xffff) != 0;
+            default: return false;
+        }
+    }
+
+    private static int CompareProfile(Field field, uint first, uint second)
+    {
+        // ILCE-6400: Auto is one notch below the lowest fixed ISO.
+        if (field == Field.Iso) return (first == AutoIso ? 0u : first).CompareTo(second == AutoIso ? 0u : second);
+        return Rules[(int)field].Compare(first, second);
+    }
+
+    private static bool SameValue(Field field, uint? left, uint? right)
+    {
+        if (left == right) return true;
+        return left.HasValue && right.HasValue && ValidProfileValue(field, left.Value) &&
+            ValidProfileValue(field, right.Value) && CompareProfile(field, left.Value, right.Value) == 0;
+    }
+
+    private static uint[] ProfileChoices(Field field, uint[] values)
+    {
+        if (values == null) return new uint[0];
+        var choices = new List<uint>();
+        int order = 0;
+        bool ended = false;
+        foreach (uint raw in values)
+        {
+            // Only one contiguous, unambiguous run of supported values can
+            // be traversed (e.g. ISO Auto + normal ISO, then MFNR options).
+            if (!ValidProfileValue(field, raw))
+            {
+                if (choices.Count != 0) ended = true;
+                continue;
+            }
+            if (ended) return new uint[0];
+            if (choices.Count > 0)
+            {
+                int direction = CompareProfile(field, raw, choices[choices.Count - 1]);
+                if (direction == 0 || (order != 0 && direction != order)) return new uint[0];
+                order = direction;
+            }
+            choices.Add(raw);
+        }
+        return choices.ToArray();
+    }
+
     internal sealed class Snapshot
     {
         private readonly uint?[] values;
         private readonly string[] capabilityBlocks;
+        private readonly ProfileField[] profile;
         public readonly uint ExposureMode;
+        internal string Mode { get { return ExposureMode == ManualExposure ? "M" : ExposureMode == 3 ? "A" : "unknown"; } }
+        internal ProfileField GetProfileField(Field field) { return profile[(int)field]; }
 
-        internal Snapshot(uint?[] values, string[] capabilityBlocks, uint mode)
+        internal Snapshot(uint?[] values, string[] capabilityBlocks, uint mode, ProfileField[] profile)
         {
             this.values = values;
+            this.profile = profile;
             this.capabilityBlocks = capabilityBlocks;
             ExposureMode = mode;
+        }
+
+        // The helper is opened again between server preflight and write. Bind
+        // the click to all controllable exposure values and their descriptors.
+        // In A the body continuously meters the shutter time on its own.
+        internal string ProfileGuard()
+        {
+            using (var bytes = new MemoryStream())
+            using (var writer = new BinaryWriter(bytes))
+            using (var sha = SHA256.Create())
+            {
+                writer.Write(ExposureMode);
+                foreach (var rule in Rules)
+                {
+                    Field field = rule.Kind;
+                    var cap = GetProfileField(field);
+                    uint? value = field == Field.Shutter && Mode == "A" ? null : GetValue(field);
+                    writer.Write(value.HasValue);
+                    if (value.HasValue) writer.Write(CanonicalValue(field, value.Value));
+                    writer.Write(cap.Writable);
+                    writer.Write(cap.Relative);
+                    writer.Write(cap.Choices.Length);
+                    foreach (uint choice in cap.Choices) writer.Write(CanonicalValue(field, choice));
+                }
+                return BitConverter.ToString(sha.ComputeHash(bytes.ToArray())).Replace("-", "").ToLowerInvariant();
+            }
+        }
+
+        private static uint CanonicalValue(Field field, uint raw)
+        {
+            if (field != Field.Shutter || !ValidProfileValue(field, raw)) return raw;
+            uint numerator = raw >> 16, denominator = raw & 0xffff;
+            uint a = numerator, b = denominator;
+            while (b != 0) { uint remainder = a % b; a = b; b = remainder; }
+            return ((numerator / a) << 16) | (denominator / a);
         }
 
         public uint? GetValue(Field field) { return values[(int)field]; }
@@ -129,7 +249,7 @@ internal static class SonyIso
             Thread.Sleep(100);
         }
         receive(0x9201, new uint[] { 3, 0, 0 });
-        return ParseSnapshot(receive(0x9209, new uint[] { 0 }));
+        return Refresh(receive);
     }
 
     // Null means the write was acknowledged but all reads still showed the starting value.
@@ -173,6 +293,71 @@ internal static class SonyIso
         return null;
     }
 
+    internal static Snapshot Refresh(Func<ushort, uint[], byte[]> receive)
+    {
+        return ParseSnapshot(receive(0x9209, new uint[] { 0 }));
+    }
+
+    private static void CheckProfileRead(Snapshot before, Snapshot after, Field writing)
+    {
+        if (after.ExposureMode != before.ExposureMode)
+            throw new InvalidOperationException("Der Kameramodus hat sich beim Profilschritt geändert.");
+        foreach (var rule in Rules)
+        {
+            Field field = rule.Kind;
+            ProfileField a = before.GetProfileField(field), b = after.GetProfileField(field);
+            if (a.Relative != b.Relative || a.Writable != b.Writable || !a.Choices.SequenceEqual(b.Choices))
+                throw new InvalidOperationException("Die Kamerafähigkeiten haben sich beim Profilschritt geändert. Erneut lesen.");
+            if (field != writing && !(field == Field.Shutter && before.Mode == "A") &&
+                !SameValue(field, before.GetValue(field), after.GetValue(field)))
+                throw new InvalidOperationException("Eine weitere Kameraeinstellung hat sich beim Profilschritt geändert. Erneut lesen.");
+        }
+    }
+
+    // Read back each individual notch. A stale acknowledgment can only cause
+    // another read (also on a fresh handle); it must never replay that notch.
+    internal static uint WriteProfile(Snapshot before, string expectedGuard, string mode, Field field, uint expected, uint target,
+        Action<Field, int> step, Func<Snapshot> read, Func<Snapshot> reopen, Action<int> wait)
+    {
+        if (!String.Equals(expectedGuard, before.ProfileGuard(), StringComparison.Ordinal))
+            throw new InvalidOperationException("Die Kamerawerte oder Fähigkeiten haben sich seit der Vorschau geändert. Erneut lesen.");
+        ProfileField cap = before.GetProfileField(field);
+        if ((mode != "M" && mode != "A") || before.Mode != mode ||
+            !SameValue(field, cap.Current, expected) || !cap.Accepts(field, target))
+            throw new InvalidOperationException("Profilschritt gesperrt. Modus, Istwert und Kamerafähigkeiten erneut prüfen.");
+
+        uint current = cap.Current.Value;
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        for (int notch = 0; !SameValue(field, current, target); notch++)
+        {
+            if (notch >= 64 || timer.ElapsedMilliseconds >= 120000)
+                throw new InvalidOperationException("Profilschritt begrenzt. Zuletzt gelesen: " + Rules[(int)field].FormatReading(current) + ".");
+            int direction = CompareProfile(field, target, current);
+            step(field, direction);
+            Snapshot actual = null;
+            uint next = current;
+            for (int attempt = 0; attempt < 4; attempt++)
+            {
+                if (attempt > 0) wait(attempt == 3 ? 500 : 150);
+                actual = attempt == 3 ? reopen() : read();
+                CheckProfileRead(before, actual, field);
+                uint? value = actual.GetProfileField(field).Current;
+                if (!value.HasValue)
+                    throw new InvalidOperationException("Die Rücklesung des Profilschritts fehlt.");
+                next = value.Value;
+                if (!SameValue(field, current, next)) break;
+            }
+            int movement = CompareProfile(field, next, current);
+            int remaining = CompareProfile(field, target, next);
+            if (movement != direction || (remaining != 0 && remaining != direction))
+                throw new InvalidOperationException("Ziel nach dem Kameraschritt nicht bestätigt. Zuletzt gelesen: " +
+                    Rules[(int)field].FormatReading(next) + ". Aktuellen Wert erneut lesen.");
+            before = actual;
+            current = next;
+        }
+        return current;
+    }
+
     private static bool HasDeviceInfo(byte[] payload)
     {
         var data = new Packet(payload);
@@ -200,6 +385,9 @@ internal static class SonyIso
         var values = new uint?[Rules.Length];
         var seen = new bool[Rules.Length];
         var blocks = new string[Rules.Length];
+        var enumerations = new uint[Rules.Length][];
+        var relative = new bool[Rules.Length];
+        var adjustable = new bool[Rules.Length];
         uint? mode = null;
         for (uint index = 0; index < entries; index++)
         {
@@ -223,10 +411,11 @@ internal static class SonyIso
                 else
                 {
                     values[slot] = data.Unsigned(type);
-                    bool canStep = data.StepForm(rule);
+                    bool canStep = data.StepForm(rule, out enumerations[slot], out relative[slot]);
                     // libgphoto2 ptp_unpack_Sony_DPD: in v200 GetSet=0 can be
                     // adjustable when IsEnabled=1. 0x82 is a notch control.
-                    if (enabled != 1 || (access != 0 && access != 1 && access != 0x82)) blocks[slot] = "access";
+                    adjustable[slot] = enabled == 1 && (access == 0 || access == 1 || access == 0x82);
+                    if (!adjustable[slot]) blocks[slot] = "access";
                     else if (!canStep) blocks[slot] = "choices";
                 }
                 seen[slot] = true;
@@ -249,7 +438,19 @@ internal static class SonyIso
             data.SkipForm(type);
         }
         data.RequireEnd();
-        return new Snapshot(values, blocks, mode.GetValueOrDefault());
+        var profile = new ProfileField[Rules.Length];
+        foreach (var rule in Rules)
+        {
+            int i = (int)rule.Kind;
+            uint? current = values[i];
+            if (current.HasValue && !ValidProfileValue(rule.Kind, current.Value)) current = null;
+            uint[] choices = ProfileChoices(rule.Kind, enumerations[i]);
+            bool modeAllows = mode == ManualExposure || (mode == 3 && rule.Kind != Field.Shutter);
+            bool writable = current.HasValue && adjustable[i] && modeAllows &&
+                (relative[i] || choices.Any(choice => SameValue(rule.Kind, choice, current)));
+            profile[i] = new ProfileField(current, choices, relative[i], writable);
+        }
+        return new Snapshot(values, blocks, mode.GetValueOrDefault(), profile);
     }
 
     // Advance only along the declared, length-checked PTP records. In
@@ -321,10 +522,16 @@ internal static class SonyIso
             return type == 4 ? UInt16() : UInt32();
         }
 
-        internal bool StepForm(StepRule rule)
+        internal bool StepForm(StepRule rule, out uint[] enumeration, out bool relative)
         {
             byte form = Byte();
-            if (form == 0) return rule.Kind != Field.Iso;
+            enumeration = null;
+            relative = false;
+            if (form == 0)
+            {
+                relative = rule.Kind != Field.Iso;
+                return relative;
+            }
             if (form == 1)
             {
                 uint min = Unsigned(rule.Type), max = Unsigned(rule.Type), step = Unsigned(rule.Type);
@@ -332,17 +539,20 @@ internal static class SonyIso
                 // The ILCE-6400 dump uses these full storage ranges for 5007
                 // and D20D. They do not enumerate lens/shutter settings. A
                 // single relative notch lets the body choose its next stop.
-                return rule.Kind != Field.Iso && min == 0 && max == fullRange && step == 1;
+                relative = rule.Kind != Field.Iso && min == 0 && max == fullRange && step == 1;
+                return relative;
             }
             if (form != 2) throw new InvalidDataException("Unbekannte Eigenschaftsform im Sony-Protokoll.");
 
             int count = UInt16();
+            if (count <= 512) enumeration = new uint[count];
             int initial = -1, target = -1, order = 0;
             bool ambiguous = false;
             uint? previous = null;
             for (int i = 0; i < count; i++)
             {
                 uint item = Unsigned(rule.Type);
+                if (enumeration != null) enumeration[i] = item;
                 if (!rule.IsNumeric(item)) continue; // e.g. BULB
                 if (rule.EqualsValue(item, rule.Start))
                 {

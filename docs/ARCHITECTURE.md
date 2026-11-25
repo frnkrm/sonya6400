@@ -82,16 +82,22 @@ Ein vollständiges Beispiel für weite Berge aus der Hand mit dem Tamron B070:
 
 [local/server.js](../local/server.js) bedient die Loopback-Origin. Nach Sitzungsaufbau benötigt eine USB-Aktion die dazugehörige Sitzung und den lokalen Ursprung. Zum Schreiben ist zusätzlich die zu dieser Sitzung gehörende gelesene Vorschau nötig. Eine laufende Kameraaktion sperrt konkurrierende Zugriffe. [local/gphoto.js](../local/gphoto.js) startet gphoto2 mit getrennten Argumenten und wertet Modell, Modus, aktuelle Werte und verfügbare Optionen aus den tatsächlich gemeldeten Konfigurationseigenschaften aus.
 
-### Zwei Verbindungswege
+### Verbindung und Dateiaustausch
 
 - Die gekennzeichnete **Simulation** liefert kontrollierte Fähigkeiten und Istwerte im Browser. Ein Profil lässt sich auf diese Weise auch offline ausprobieren.
 - Für **USB** startet der Benutzer auf dem Linux-Rechner [local/server.js](../local/server.js). Dieser Dienst hört auf Loopback und liefert die Oberfläche auf derselben Origin wie die lokale API. Die Sitzung ist lokal gebunden. Der USB-Adapter liest die gphoto2-Konfiguration des erkannten Geräts und gleicht Sollwert, angebotene Auswahl und Rücklesung je Feld ab.
 - Die öffentliche Website übergibt ihre Empfehlung als JSON-Datei. Zum tatsächlichen Schreiben wird die Datei auf dem Rechner am Kabel eingelesen, geprüft und bewusst übertragen. Die Verbindungshilfe deckt auch Sonys getrennte WLAN-/NFC-Verbindung über Imaging Edge Mobile ab. [Einrichtung](DEVELOPMENT.md#lokale-usb-anwendung) · [Verbindungsrecherche](research/sony-a6400-verbindung-und-presettransfer.md)
 
 
+### Windows-Profil
+
+Unter Windows verbindet sich der lokale Dienst über WPD mit der ILCE-6400. Eine Vorschau umfasst Geräteschlüssel, Fotomodus, ISO, Blende und Zeit aus einem Sony-Eigenschaftsdatensatz. Die gemeinsame Übertragungslogik verarbeitet diese Vorschau wie die Simulation und den gphoto2-Adapter. Eine Freigabe gehört zu einer lokalen Sitzung und zum gewählten USB-Zugriff.
+
+Für ISO berücksichtigt der Helfer die gemeldeten normalen Einzelwerte einschließlich Auto ISO. Die Blende und die feste Zeit können eine Auswahlliste oder nur die Möglichkeit zum Verstellen in Kamerastufen melden. Im zweiten Fall kennzeichnet die Vorschau den Versuch ausdrücklich. Bei einem Schreibauftrag verstellt der Helfer das betreffende Feld in Kamerastufen und liest die Antwort nach jedem Schritt. Eine fehlende Bestätigung beendet den Versuch. Ein Feld gilt erst als übertragen, wenn die Rücklesung den exakten Profilwert ergibt. Moduswahlrad, Auto-ISO-Grenzen und die Min.-SS-Schwelle in A werden von Hand eingestellt. [Prüfung am Gerät](WINDOWS-USB.md#ein-profil-mit-windows-übertragen)
+
 ### Native Einzeltests unter Windows
 
-Unter **Windows-Test** wählt man ISO, Blende oder Belichtungszeit. Der lokale Helfer liest die gewählte Eigenschaft der α6400 über die Windows Portable Devices API (WPD). Für den Schreibschritt prüft er den aktuellen Fotomodus M, den Ausgangswert und die benötigten Geräteangaben. Die Freigabe gilt für eine Kamera, eine Einstellung und dieselbe lokale Browsersitzung. Ein Schreibklick verbraucht sie. Die vollständige Profilübertragung braucht eine eigene gphoto2-Vorschau. [Windows-Anleitung](WINDOWS-USB.md) · [Lokaler Dienst](../local/server.js)
+Unter **Windows-Test** wählt man ISO, Blende oder Belichtungszeit. Der lokale Helfer liest die gewählte Eigenschaft der α6400 über die Windows Portable Devices API (WPD). Für den Schreibschritt prüft er den aktuellen Fotomodus M, den Ausgangswert und die benötigten Geräteangaben. Die Freigabe gilt für eine Kamera, eine Einstellung und dieselbe lokale Browsersitzung. Ein Schreibklick verbraucht sie. Für eine Profilübertragung liest man eine neue Profilvorschau über den ausgewählten Adapter. [Windows-Anleitung](WINDOWS-USB.md) · [Lokaler Dienst](../local/server.js)
 
 | Test in M | Sony-Eigenschaft | Einmaliger Auftrag | Erwartete Rücklesung |
 | --- | --- | --- | --- |

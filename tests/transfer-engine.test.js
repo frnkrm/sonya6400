@@ -92,6 +92,31 @@ test("C-04: abgewiesene Blende kennzeichnet bestätigte ISO und überspringt die
   assert.equal(result.rows[0].current, 100);
 });
 
+test("Native Stufensteuerung bietet das Ziel unter Vorbehalt an und prüft die Freigabe erneut", async () => {
+  const adapter = tracked();
+  const state = adapter.device.snapshot;
+  state.source = "usb";
+  state.fields.aperture = {current: 4, writable: true, choices: [], relative: true};
+  const snapshot = await adapter.read();
+  const row = preview(manual, snapshot).rows[1];
+  assert.equal(row.status, "ready");
+  assert.match(row.message, /Stufen/);
+  state.fields.aperture.relative = false;
+  assert.equal(preview(manual, state).rows[1].status, "manual");
+  const result = await apply(adapter, manual, snapshot);
+  assert.equal(result.stale, true);
+  assert.deepEqual(adapter.writes, []);
+});
+
+test("ISO braucht angebotene Ziele, auch bei nativer Stufensteuerung für andere Felder", async () => {
+  const state = await new SimulationAdapter("M").read();
+  state.source = "usb";
+  state.fields.iso = {current: 400, writable: true, choices: []};
+  assert.equal(preview(manual, state).rows[0].status, "manual");
+  state.fields.iso.relative = true;
+  assert.throws(() => preview(manual, state), /Unvollständige Geräteantwort für ISO/);
+});
+
 test("C-04: ausbleibende und abweichende Rücklesung bewirken keinen zweiten Schreibbefehl", async () => {
   for (const current of [null,200]) {
     const adapter = tracked();

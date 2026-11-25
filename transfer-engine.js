@@ -26,6 +26,8 @@
       const valid = value => value === "auto" ||
         (Number.isFinite(value) && value > 0);
       if (!cap || typeof cap.writable !== "boolean" || !Array.isArray(cap.choices) ||
+          (cap.relative !== undefined && typeof cap.relative !== "boolean") ||
+          (cap.relative && (snapshot.source !== "usb" || field === "iso" || cap.choices.length !== 0)) ||
           !cap.choices.every(valid) || !(cap.current === null || valid(cap.current))) {
         throw failure("stale", "Unvollständige Geräteantwort für " + labels[field] + ".");
       }
@@ -58,7 +60,7 @@
     const selected = scope === "iso" ? ["iso"] : fields;
     const rows = selected.map(field => {
       const target = targets[field];
-      const {current, writable, choices} = snapshot.fields[field];
+      const {current, writable, choices, relative} = snapshot.fields[field];
       let message;
       if (target === null) message = profile.shutter.kind === "minAuto"
         ? "Umschaltschwelle manuell einstellen." : "Die Kamera bestimmt die Zeit.";
@@ -66,6 +68,10 @@
       else if (current === null) message = "Istwert kann nicht gelesen werden.";
       else if (current === target) return {field, target, current, status: "already"};
       else if (!writable) message = "Die Kamera erlaubt hierfür keinen Schreibzugriff.";
+      else if (relative && typeof current === "number") return {
+        field, target, current, status: "ready", relative: true,
+        message: "Die Kamera meldet einzelne Stufen. Ob das Ziel erreichbar ist, zeigt die Rücklesung nach jedem Schritt."
+      };
       else if (!choices.includes(target)) message = "Zielwert wird in den aktuellen Kameraoptionen nicht angeboten.";
       else return {field, target, current, status: "ready"};
       if (target !== null && snapshot.mode === profile.mode) manual.push(labels[field] + " vor Ort prüfen. " + message);
@@ -82,7 +88,8 @@
     for (const field of fields) {
       const previous = before.fields[field];
       const next = after.fields[field];
-      if (previous.writable !== next.writable || previous.choices.length !== next.choices.length ||
+      if (previous.writable !== next.writable || Boolean(previous.relative) !== Boolean(next.relative) ||
+          previous.choices.length !== next.choices.length ||
           previous.choices.some(choice => !next.choices.includes(choice))) {
         return "Die verfügbaren Einstellungen für " + labels[field] + " haben sich geändert.";
       }
@@ -160,8 +167,11 @@
         const before = await read(adapter);
         accept(before, baseline);
         started = true;
+        delete row.message;
         try {
-          await bounded(adapter, 40000, signal => adapter.write(row.field, row.target, before, {signal}));
+          // Der native Windows-Adapter kann viele einzeln zurückgelesene Kamerastufen benötigen.
+          await bounded(adapter, adapter.writeTimeoutMs ?? 40000,
+            signal => adapter.write(row.field, row.target, before, {signal}));
         } catch (error) {
           const rejected = ["unsupported", "rejected"].includes(error.code);
           row.status = rejected ? "rejected" : error.code === "disconnected" ? "interrupted" : "unverified";
@@ -171,7 +181,7 @@
         }
         row.status = "unverified";
         row.current = null;
-        // Höchstens drei Leseversuche für zeitversetzte Kameraanzeigen. Pro Feld nur ein Schreibbefehl.
+        // Zeitversetzte Anzeigen nur erneut lesen. Pro Feld gibt es einen Auftrag an den Adapter.
         for (let attempt = 0; attempt < 3; attempt++) {
           if (attempt) await new Promise(resolve => setTimeout(resolve, 180));
           const after = await read(adapter);

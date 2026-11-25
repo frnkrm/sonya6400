@@ -40,6 +40,7 @@ const TransferUI = (() => {
   let connecting;
   let windowsIso = false;
   let windowsExposure = false;
+  let windowsProfile = false;
   let stepTicket;
   let expiryTimer;
   let revision = 0;
@@ -50,6 +51,8 @@ const TransferUI = (() => {
   const el = id => root.querySelector("#transfer-" + id);
   const profile = () => disabledProfile ? null : (imported ? imported.profile : recommendation);
   const isSim = () => el("source").value === "simulation";
+  const usesWindowsProfile = () => !isSim() && windowsProfile && el("transport").value === "windows";
+  const sourceLabel = () => isSim() ? "Simulation" : usesWindowsProfile() ? "Windows" : "USB";
   const fmt = n => n.toLocaleString("de-DE", {maximumFractionDigits: 6});
   function node(tag, text) {
     const result = document.createElement(tag);
@@ -90,6 +93,11 @@ const TransferUI = (() => {
             </select></label>
             <label id="transfer-mode-label">Simulierter Kameramodus<select id="transfer-mode">
               <option value="A">A · Blendenpriorität</option><option value="M">M · Manuell</option>
+            </select></label>
+            <label id="transfer-transport-label" hidden>USB-Zugriff<select id="transfer-transport">
+              <option value="windows">Windows-Profil</option>
+              <option value="gphoto">gphoto2 über WSL</option>
+              <option value="tests">Windows-Einzeltests</option>
             </select></label>
             <label id="transfer-test-label" hidden>Windows-Test<select id="transfer-test">
               <option value="iso">ISO</option>
@@ -134,12 +142,13 @@ const TransferUI = (() => {
       disabledProfile = false;
       invalidate("Aktuelle Empfehlung gewählt. Istwerte neu lesen.");
     };
-    el("source").onchange = el("mode").onchange = () => {
+    el("source").onchange = el("mode").onchange = el("transport").onchange = () => {
       simulation = null;
       invalidate("Nicht verbunden. Istwerte für die gewählte Verbindung lesen.");
       if (!isSim() && local) {
         // Nur die Fähigkeiten der lokalen Anwendung erfragen. Geräte werden erst auf Klick gelesen.
         connect().then(controls, controls);
+        controls();
       }
     };
     el("test").onchange = () => invalidate(fields[el("test").value] + " gewählt. Istwert über Windows lesen.");
@@ -181,31 +190,38 @@ const TransferUI = (() => {
 
   function controls() {
     const usb = !isSim();
+    const chooseTransport = usb && local && windowsProfile;
+    const singleTests = chooseTransport && el("transport").value === "tests";
+    const showTests = usb && local && (!chooseTransport || singleTests) && (windowsIso || windowsExposure);
     el("mode-label").hidden = usb;
     el("usb-help").hidden = !usb;
+    el("transport-label").hidden = !chooseTransport;
+    el("transport").options[2].disabled = !(windowsIso || windowsExposure);
     const testSelect = el("test");
     if (!windowsExposure) testSelect.value = "iso";
     else if (!windowsIso && testSelect.value === "iso") testSelect.value = "aperture";
     testSelect.options[0].disabled = !windowsIso;
     const field = testSelect.value;
-    el("test-label").hidden = !usb || !local || !windowsExposure;
+    el("test-label").hidden = !showTests || !windowsExposure;
     testSelect.disabled = busy;
-    el("windows").hidden = !usb || !local || !(windowsIso || windowsExposure);
+    el("windows").hidden = !showTests;
     el("windows").textContent = fields[field] + " über Windows lesen";
     el("windows-step").textContent = windowsTests[field].button;
     el("native-help").textContent = "Imaging Edge Remote schließen und die Kamera direkt mit Windows verbinden. " +
-      windowsTests[field].setup + " Für das gesamte Profil die USB-Vorschau über gphoto2 verwenden.";
+      windowsTests[field].setup;
     el("windows").disabled = busy || el("windows").hidden;
     el("windows-step").hidden = el("windows").hidden;
     el("windows-step").disabled = busy || el("windows-step").hidden || !stepTicket;
     el("native-help").hidden = el("windows").hidden;
-    el("read").textContent = usb ? "USB-Istwerte lesen" : "Simulationswerte lesen";
-    el("read").disabled = busy || !profile() || (usb && !local);
+    el("read").textContent = usesWindowsProfile() ? "Windows-Istwerte lesen" :
+      usb ? "USB-Istwerte lesen" : "Simulationswerte lesen";
+    for (const id of ["read", "iso", "apply"]) el(id).hidden = singleTests;
+    el("read").disabled = busy || singleTests || !profile() || (usb && (!local || Boolean(connecting)));
     const ready = !busy && snapshot && profile()
       ? TransferEngine.preview(profile(), snapshot).rows.filter(row => row.status === "ready") : [];
     el("apply").disabled = ready.length === 0;
     el("iso").disabled = !ready.some(row => row.field === "iso");
-    for (const id of ["source", "mode", "import", "current"]) el(id).disabled = busy;
+    for (const id of ["source", "mode", "transport", "import", "current"]) el(id).disabled = busy;
     el("export").textContent = imported ? "Dateiprofil als JSON speichern" : "Empfehlung als JSON speichern";
     el("export").disabled = !profile();
     el("current").hidden = !imported && !disabledProfile;
@@ -235,7 +251,8 @@ const TransferUI = (() => {
       const wrapper = node("section", "");
       wrapper.className = "transfer-row";
       const heading = node("strong", fields[row.field]);
-      const state = node("span", rowStates[row.status] || "Unbekannt");
+      const state = node("span", row.relative && row.status === "ready" ? "In Kamerastufen versuchen" :
+        rowStates[row.status] || "Unbekannt");
       state.className = "transfer-field-status";
       wrapper.append(heading, state);
       wrapper.append(node("p", "Ziel " + value(row.field, row.target) + " · Zuletzt gelesen " + value(row.field, row.current)));
@@ -268,15 +285,16 @@ const TransferUI = (() => {
 
   function showDevice(s) {
     const time = new Date().toLocaleTimeString("de-DE");
-    el("device").textContent = [isSim() ? "Simulation" : "USB", s.model, "Modus " + s.mode, "gelesen um " + time].join(" · ");
+    el("device").textContent = [sourceLabel(), s.model, "Modus " + s.mode, "gelesen um " + time].join(" · ");
     el("device").hidden = false;
     const panel = el("capabilities");
     const list = document.createElement("dl");
     for (const [key, label] of Object.entries(fields)) {
       const field = s.fields[key];
       const choices = field?.choices || [];
-      list.append(node("dt", label + (field?.writable ? " · schreibbar" : " · manuell")),
-        node("dd", choices.length ? choices.map(v => value(key, v)).join(", ") : "Keine Auswahl gemeldet"));
+      const description = choices.length ? choices.map(v => value(key, v)).join(", ") :
+        field?.relative ? "Die Kamera bestimmt die einzelnen Stufen." : "Keine Auswahl gemeldet";
+      list.append(node("dt", label + (field?.writable ? " · schreibbar" : " · manuell")), node("dd", description));
     }
     panel.querySelector("div").replaceChildren(list);
     panel.hidden = false;
@@ -284,7 +302,8 @@ const TransferUI = (() => {
 
   async function request(path, body) {
     // Für bis zu drei Felder je Vorprüfung, Schreiben und drei Rücklesungen zulassen.
-    const timeout = path === "/api/apply" ? 8 * 60_000 : path === "/api/session" ? 10_000 : 45_000;
+    const applyMinutes = body?.transport === "windows" ? 15 : 8;
+    const timeout = path === "/api/apply" ? applyMinutes * 60_000 : path === "/api/session" ? 10_000 : 45_000;
     const options = {signal: AbortSignal.timeout(timeout), cache: "no-store", credentials: "same-origin", redirect: "error"};
     if (body) {
       options.method = "POST";
@@ -311,6 +330,7 @@ const TransferUI = (() => {
         token = session.token;
         windowsIso = session.windowsIso === true;
         windowsExposure = session.windowsExposure === true;
+        windowsProfile = session.windowsProfile === true;
       }).finally(() => { connecting = null; });
     }
     await connecting;
@@ -392,7 +412,7 @@ const TransferUI = (() => {
       status.textContent += field === "iso" ? " Die Kamera meldet ISO 500 nicht als eindeutige nächste Stufe nach ISO 400." :
         " Die Kamera gibt den Einzelschritt für dieses Ziel nicht frei.";
     } else if (field !== "iso" || result.iso === 400) {
-      status.textContent += " " + test.setup + " Anschließend erneut lesen.";
+      status.textContent += " Der optionale Schreibtest ist für diesen Gerätestand nicht freigegeben.";
     }
   }
 
@@ -417,7 +437,7 @@ const TransferUI = (() => {
           showWindowsReading(field, result);
           return;
         }
-        state = await request("/api/read", {});
+        state = await request("/api/read", usesWindowsProfile() ? {transport: "windows"} : {});
         if (state.source !== "usb") throw new Error("Die lokale Anwendung meldet keine USB-Kamera.");
       }
       if (revision !== active) return;
@@ -425,7 +445,8 @@ const TransferUI = (() => {
       showRows(preview);
       showDevice(state);
       snapshot = state;
-      el("status").textContent = isSim() ? "Simulation verbunden. Ziel- und Istwerte prüfen." : "USB-Istwerte gelesen. Ziel und aktuellen Gerätestand vergleichen.";
+      el("status").textContent = isSim() ? "Simulation verbunden. Ziel- und Istwerte prüfen." :
+        sourceLabel() + "-Istwerte gelesen. Ziel und aktuellen Gerätestand vergleichen.";
     } catch (error) {
       if (revision === active) invalidate((native ? "Windows-Lesetest: " : "Nicht verbunden. ") + error.message);
     } finally {
@@ -469,7 +490,7 @@ const TransferUI = (() => {
     if (busy || el(scope === "iso" ? "iso" : "apply").disabled) return;
     busy = true;
     const expected = snapshot;
-    const source = (isSim() ? "Simulation" : "USB") + (scope === "iso" ? " · ISO-Einzeltest" : "");
+    const source = sourceLabel() + (scope === "iso" ? " · ISO-Einzeltest" : "");
     const record = {
       revision, target: el("profile").textContent,
       time: new Date().toLocaleTimeString("de-DE"), message: "", result: null
@@ -477,11 +498,14 @@ const TransferUI = (() => {
     snapshot = null;
     const active = revision;
     controls();
-    el("status").textContent = source + " · Übertragung läuft …";
+    el("status").textContent = usesWindowsProfile()
+      ? "Windows · Übertragung läuft. Jede Kamerastufe wird zurückgelesen. Das kann mehrere Minuten dauern."
+      : source + " · Übertragung läuft …";
     try {
       const result = isSim()
         ? await TransferEngine.apply(simulation, profile(), expected, scope)
-        : await request("/api/apply", {profile: profile(), expected, scope});
+        : await request("/api/apply", {profile: profile(), expected: {ticket: expected.ticket}, scope,
+          transport: usesWindowsProfile() ? "windows" : undefined});
       record.result = result;
       record.message = [source + " · " + (resultStates[result.status] || "Ergebnis unklar"),
         result.message, result.stale ? "Letzter Gerätestand veraltet." : ""].filter(Boolean).join(" ");

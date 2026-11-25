@@ -391,8 +391,12 @@ internal sealed class Wpd : IDisposable
     // https://github.com/qkhanhpro/simplealphadroid/blob/197c206/app/src/main/java/com/simplealphadroid/SonyCam.java#L769-L779
     internal void StepUp(SonyIso.Field field)
     {
-        if (device == null) throw new ObjectDisposedException("Wpd");
-        uint property;
+        Step(field, 1);
+    }
+
+    internal static byte[] StepPayload(SonyIso.Field field, int direction, out uint property)
+    {
+        if (direction != 1 && direction != -1) throw new ArgumentOutOfRangeException("direction");
         byte[] step;
         switch (field)
         {
@@ -401,6 +405,17 @@ internal sealed class Wpd : IDisposable
             case SonyIso.Field.Shutter: property = 0xD20D; step = new byte[] { 1, 0 }; break;
             default: throw new InvalidOperationException("Unbekannter Belichtungsschritt.");
         }
+        // The captured command uses 0xFFFF for down, zero-extended for
+        // the four-byte ISO payload (SonyCam.expoStep).
+        if (direction < 0) step[0] = step[1] = 0xff;
+        return step;
+    }
+
+    internal void Step(SonyIso.Field field, int direction)
+    {
+        if (device == null) throw new ObjectDisposedException("Wpd");
+        uint property;
+        byte[] step = StepPayload(field, direction, out property);
         string operation = "Sony-Belichtungsschritt (0x9207, 0x" + property.ToString("X4") + ")";
         string context = null;
         bool endAttempted = false;

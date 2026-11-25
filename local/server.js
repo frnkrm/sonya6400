@@ -55,6 +55,7 @@ async function readBody(req) {
 }
 
 const native = require("./windows/iso.js");
+const {WindowsProfileAdapter} = require("./windows/profile.js");
 const windows = process.platform === "win32" ? native : {};
 
 function windowsReading(field, result) {
@@ -80,7 +81,8 @@ function matchesStep(field, reading, afterWrite) {
 }
 
 function createApp(adapter = new GPhotoAdapter(), windowsIso = windows.readWindowsIso, windowsStep = windows.stepWindowsIso,
-  readExposure = windows.readWindowsExposure, stepExposure = windows.stepWindowsExposure) {
+  readExposure = windows.readWindowsExposure, stepExposure = windows.stepWindowsExposure,
+  windowsProfile = process.platform === "win32" ? new WindowsProfileAdapter() : null) {
   const sessions = new Map();
   let busy = false;
   function clearPreviews() {
@@ -119,7 +121,7 @@ function createApp(adapter = new GPhotoAdapter(), windowsIso = windows.readWindo
         if (sessions.size >= 64) fail("busy", "Zu viele lokale Sitzungen. Anwendung neu starten.", 429);
         const token = randomBytes(32).toString("hex");
         sessions.set(token, {expires: now + SESSION_MS, snapshot: null, step: null});
-        json(res, 200, {token, windowsIso: typeof windowsIso === "function", windowsExposure: typeof readExposure === "function"});
+        json(res, 200, {token, windowsProfile: Boolean(windowsProfile), windowsIso: typeof windowsIso === "function", windowsExposure: typeof readExposure === "function"});
         return;
       }
       const nativeRoute = /^\/api\/windows-(iso|aperture|shutter)(-step)?$/u.exec(route);
@@ -164,19 +166,27 @@ function createApp(adapter = new GPhotoAdapter(), windowsIso = windows.readWindo
             }
             json(res, 200, reading);
           }
-        } else if (route === "/api/read") {
-          clearPreviews();
-          if (Object.keys(body).length) fail("format", "Die Leseanfrage benötigt keine Parameter.", 400);
-          const snapshot = await TransferEngine.readForPreview(adapter);
-          session.snapshot = {...snapshot, ticket: randomBytes(16).toString("hex")};
-          json(res, 200, session.snapshot);
         } else {
-          if (Object.keys(body).some(key => !["profile", "expected", "scope"].includes(key)) ||
+          const transport = Object.hasOwn(body, "transport") ? body.transport : "gphoto2";
+          if (transport !== "windows" && transport !== "gphoto2")
+            fail("format", "Unbekannte Kameraverbindung.", 400);
+          const profileAdapter = transport === "windows" ? windowsProfile : adapter;
+          if (!profileAdapter) fail("platform", "Die native Profilübertragung benötigt Windows.", 409);
+          if (route === "/api/read") {
+            clearPreviews();
+            if (Object.keys(body).some(key => key !== "transport"))
+              fail("format", "Die Leseanfrage akzeptiert nur die Kameraverbindung.", 400);
+            const snapshot = await TransferEngine.readForPreview(profileAdapter);
+            session.snapshot = {...snapshot, transport, ticket: randomBytes(16).toString("hex")};
+            json(res, 200, session.snapshot);
+            return;
+          }
+          if (Object.keys(body).some(key => !["profile", "expected", "scope", "transport"].includes(key)) ||
               (Object.hasOwn(body, "scope") && body.scope !== "iso")) {
             fail("scope", "Unbekannter Übertragungsumfang.", 400);
           }
           const expected = session.snapshot;
-          if (!expected || expected.ticket !== body.expected?.ticket)
+          if (!expected || expected.transport !== transport || expected.ticket !== body.expected?.ticket)
             fail("stale", "Vorschau abgelaufen. Kamera erneut auslesen.", 409);
           let profile;
           try {
@@ -187,7 +197,7 @@ function createApp(adapter = new GPhotoAdapter(), windowsIso = windows.readWindo
           // Die freigegebene Vorschau kommt aus der Sitzung, nie aus frei
           // veränderbaren Formularfeldern. Eine Aktion verbraucht die Vorschau.
           clearPreviews();
-          const result = await TransferEngine.apply(adapter, profile, expected, body.scope);
+          const result = await TransferEngine.apply(profileAdapter, profile, expected, body.scope);
           json(res, 200, result);
         }
       } finally {

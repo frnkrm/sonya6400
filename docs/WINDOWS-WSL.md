@@ -80,7 +80,7 @@ Erwartet werden eine Sony-Zeile und in der gphoto2-Liste ein Kameramodell mit ei
 ## 4. In der App den Istwert lesen
 
 1. Doppelklicke im **entpackten Projektordner** auf **Start-Kamera.cmd**. Lass das Konsolenfenster geöffnet. Öffne im Windows-Browser die dort angezeigte Adresse `http://127.0.0.1:8765/`.
-2. Öffne im **Kompass** den Abschnitt **Kameraverbindung & Profil**. Bei **Verbindung** wähle **USB am Computer** und klicke auf **USB-Istwerte lesen**.
+2. Öffne im **Kompass** den Abschnitt **Kameraverbindung & Profil**. Bei **Verbindung** wähle **USB am Computer**, stelle **USB-Zugriff** auf **gphoto2 über WSL** und klicke auf **USB-Istwerte lesen**.
 3. Vergleiche Modell, Modus und die Zeile **ISO** mit der Anzeige auf der Kamera. Notiere den Ausgangswert. Bei Auto ISO ist **Auto** der eingestellte Modus. Eine von der Kamera für eine einzelne Aufnahme gemessene Zahl kann davon abweichen.
 
 **Bis hierhin ist Lesen der gesamte Kameratest.** Wer nur die Verbindung prüfen möchte, kann direkt zu Schritt 6 gehen.

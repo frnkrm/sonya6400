@@ -24,6 +24,7 @@ V6 = "5dc338e8f7a0cafb90ef61425ff5d0590369dece"
 V7 = "ca5aac4c0656b24458b711f2613e612b7e9165e3"
 V8 = "fa280c7b26e106c0f5b77591ac4a32f694f13316"
 V10 = "3d89c7285e766d092539a01ed93ab20ba4ddf41a"
+V11 = "8695e2230b308ee57f7568964eb1b64aa8646630"
 
 
 class Deploy(SimpleHTTPRequestHandler):
@@ -213,7 +214,8 @@ class OfflineAndUpdate(unittest.TestCase):
         self.tab.locator("#transfer-panel > summary").click()
         self.tab.locator("#transfer-source").select_option("usb")
         self.tab.locator("#transfer-windows").click()
-        expect(self.tab.locator("#transfer-status")).to_contain_text("M und feste ISO 400")
+        expect(self.tab.locator("#transfer-status")).to_contain_text("ILCE-6400 · ISO 400")
+        expect(self.tab.locator("#transfer-native-help")).to_contain_text("M und feste ISO 400")
         expect(self.tab.locator("#transfer-windows-step")).to_be_visible()
         expect(self.tab.locator("#transfer-windows-step")).to_be_disabled()
 
@@ -241,6 +243,25 @@ class OfflineAndUpdate(unittest.TestCase):
         self.tab.get_by_role("button", name="Blende über Windows lesen").click()
         expect(self.tab.locator("#transfer-status")).to_contain_text("Blende f/8")
         expect(self.tab.locator("#transfer-windows-step")).to_be_disabled()
+
+    def test_v11_client_updates_to_native_windows_profile(self):
+        self.http.old_files = {
+            name: subprocess.check_output(["git", "show", f"{V11}:{name}"], cwd=ROOT)
+            for name in ("index.html", "sw.js", "transfer-ui.js", "transfer-engine.js")
+        }
+        self.http.legacy = True
+        self.open_app()
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", "v11")
+        self.http.legacy = False
+        self.tab.evaluate("navigator.serviceWorker.ready.then(reg => reg.update()).then(() => true)")
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", RELEASE)
+        self.tab.route("**/api/session", lambda route: route.fulfill(
+            json={"token": "fixture", "windowsProfile": True, "windowsIso": True, "windowsExposure": True}
+        ))
+        self.tab.locator("#transfer-panel > summary").click()
+        self.tab.locator("#transfer-source").select_option("usb")
+        expect(self.tab.get_by_role("button", name="Windows-Istwerte lesen")).to_be_visible()
+        expect(self.tab.get_by_role("button", name="Einstellungen übertragen")).to_be_disabled()
 
     def test_failed_update_and_upgrade_of_existing_tab_and_installed_app(self):
         self.http.old_files = {

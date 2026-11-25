@@ -281,6 +281,113 @@ internal static class SonyIsoTests
         Check(!wrongType.GetValue(SonyIso.Field.Aperture).HasValue, "aperture requires UINT16");
     }
 
+    private static SonyIso.Snapshot ProfileSnapshot(byte[] properties)
+    {
+        return SonyIso.Preview(new Session(properties).Receive);
+    }
+
+    private static void ProfileTests()
+    {
+        const SonyIso.Field iso = SonyIso.Field.Iso, f = SonyIso.Field.Aperture, t = SonyIso.Field.Shutter;
+        const uint auto = 0xffffff;
+        uint code;
+        Check(Wpd.StepPayload(iso, -1, out code).SequenceEqual(Hex("ff ff 00 00")) && code == 0xD21E, "ISO down");
+        Check(Wpd.StepPayload(t, -1, out code).SequenceEqual(Hex("ff ff")) && code == 0xD20D, "shutter down");
+        Check(Wpd.StepPayload(f, 1, out code).SequenceEqual(Hex("01 00")) && code == 0x5007, "aperture up");
+
+        var m = Hex("0e 50 04 00 00 02 02 00 01 00 00");
+        var a = Hex("0e 50 04 00 00 02 02 00 03 00 00");
+        var raw = ExposureField(f, 400, 1, new uint[] {0, 65535, 1});
+        var time = ExposureField(t, 0x0001003c);
+        var baseM = ProfileSnapshot(All(m, raw, time));
+        var baseA = ProfileSnapshot(All(a, raw, time));
+        Check(baseM.Mode == "M" && baseM.GetProfileField(f).Current == 400 && baseM.GetProfileField(f).Relative &&
+            baseM.GetProfileField(f).Choices.Length == 0, "range lends only relative control");
+        Check(baseA.Mode == "A" && baseA.GetProfileField(f).Writable && !baseA.GetProfileField(t).Writable,
+            "A allows aperture, not metered shutter");
+        Check(!baseM.GetProfileField(iso).Current.HasValue && !baseM.GetProfileField(iso).Writable, "missing field");
+        foreach (var ambiguous in new[] {All(raw, raw, m), All(raw), All(raw, m, a),
+            All(m, ExposureField(f, 400, 1, new uint[] {350, 800, 50})),
+            All(m, ExposureField(f, 400, 2, new uint[] {400, 350, 450})),
+            All(m, ExposureField(f, 400, 2, new uint[] {350, 400, 400})),
+            All(m, ExposureField(f, 400, enabled: 2))})
+            Check(!ProfileSnapshot(ambiguous).GetProfileField(f).Writable, "reject ambiguous profile capabilities");
+
+        var decisions = new List<int>();
+        Func<SonyIso.Snapshot> unexpected = delegate { throw new Exception("Unexpected camera operation"); };
+        Action<int> noDelay = delegate {};
+        // A real v200 ISO descriptor has Auto, normal ISO and extended MFNR records.
+        Func<uint, SonyIso.Snapshot> currentIso = n => ProfileSnapshot(Capabilities(current:n));
+        var down = new Queue<SonyIso.Snapshot>(new[] { currentIso(320), currentIso(auto) });
+        Check(currentIso(400).GetProfileField(iso).Choices.SequenceEqual(new uint[] {auto,320,400,500,640}),
+            "skip extra MFNR flags but expose ordinary ISO Auto");
+        uint verified = SonyIso.WriteProfile(currentIso(400), currentIso(400).ProfileGuard(), "M", iso, 400, auto,
+            (field, dir) => decisions.Add(dir), down.Dequeue, unexpected, noDelay);
+        Check(verified == auto && decisions.SequenceEqual(new[] {-1,-1}), "ISO to Auto in confirmed notches");
+        decisions.Clear();
+        Check(SonyIso.WriteProfile(currentIso(auto), currentIso(auto).ProfileGuard(), "M", iso, auto, 320, (field,dir) => decisions.Add(dir),
+            () => currentIso(320), unexpected, noDelay) == 320 && decisions.SequenceEqual(new[] {1}), "leave Auto");
+        foreach (var blocked in new Action[] {
+            () => SonyIso.WriteProfile(currentIso(400), currentIso(400).ProfileGuard(), "A", iso, 400, 500, (k,d) => unexpected(), unexpected, unexpected, noDelay),
+            () => SonyIso.WriteProfile(currentIso(400), currentIso(400).ProfileGuard(), "M", iso, 320, 500, (k,d) => unexpected(), unexpected, unexpected, noDelay),
+            () => SonyIso.WriteProfile(currentIso(400), currentIso(400).ProfileGuard(), "M", iso, 400, 450, (k,d) => unexpected(), unexpected, unexpected, noDelay),
+            () => SonyIso.WriteProfile(baseA, baseA.ProfileGuard(), "A", t, 0x1003c, 0x1007d, (k,d) => unexpected(), unexpected, unexpected, noDelay)
+        }) {
+            try { blocked(); throw new Exception("Unexpected eligibility"); }
+            catch (InvalidOperationException) { Check(true, "block stale or unsupported before first write"); }
+        }
+
+        Func<uint, uint, SonyIso.Snapshot> exposure = (fn, shutter) => ProfileSnapshot(All(m,
+            ExposureField(f, fn, 1, new uint[] {0, 65535, 1}), ExposureField(t, shutter)));
+        Check(baseM.ProfileGuard() == exposure(400,0x20078).ProfileGuard(), "normalize equivalent shutter times in guard");
+        Check(baseM.ProfileGuard() != exposure(350,0x1003c).ProfileGuard(), "changed aperture alters guard");
+        var changedChoices = ProfileSnapshot(All(m, ExposureField(f,400,2,new uint[]{350,400}), time));
+        Check(baseM.ProfileGuard() != changedChoices.ProfileGuard(), "changed choices alter guard");
+        try {
+            SonyIso.WriteProfile(exposure(400,0x1007d), baseM.ProfileGuard(), "M", f, 400, 350,
+                (k,d) => unexpected(), unexpected, unexpected, noDelay);
+            throw new Exception("Stale manual shutter allowed an aperture write");
+        }
+        catch (InvalidOperationException) { Check(true, "guard detects change to other field before any write"); }
+        var meterMoved = ProfileSnapshot(All(a, raw, ExposureField(t,0x1007d)));
+        Check(baseA.ProfileGuard() == meterMoved.ProfileGuard(), "metered A time can change before opening");
+        var atTargetA = ProfileSnapshot(All(a, ExposureField(f,350), ExposureField(t,0x10064)));
+        decisions.Clear();
+        Check(SonyIso.WriteProfile(meterMoved, baseA.ProfileGuard(), "A", f, 400, 350, (k,d) => decisions.Add(d),
+            () => atTargetA, unexpected, noDelay) == 350 && decisions.SequenceEqual(new[]{-1}),
+            "A write accepts metering drift at both ends");
+
+        decisions.Clear();
+        int rereads = 0;
+        verified = SonyIso.WriteProfile(baseM, baseM.ProfileGuard(), "M", f, 400, 350, (k,d) => decisions.Add(d),
+            delegate { rereads++; return baseM; }, () => exposure(350, 0x1003c), noDelay);
+        Check(verified == 350 && rereads == 3 && decisions.SequenceEqual(new[] {-1}), "fresh read after stale handle, no replay");
+        decisions.Clear();
+        var shutterStops = new Queue<SonyIso.Snapshot>(new[] {exposure(400, 0x10050), exposure(400, 0x10064), exposure(400, 0x200fa)});
+        verified = SonyIso.WriteProfile(baseM, baseM.ProfileGuard(), "M", t, 0x1003c, 0x1007d, (k,d) => decisions.Add(d),
+            shutterStops.Dequeue, unexpected, noDelay);
+        Check(verified == 0x200fa && decisions.SequenceEqual(new[] {1,1,1}), "shorter time; equivalent encoded final fraction");
+        foreach (var wrong in new[] {exposure(320,0x1003c), exposure(450,0x1003c), exposure(350,0x1007d), baseA,
+            baseM, ProfileSnapshot(All(m, time)), ProfileSnapshot(All(m, time, ExposureField(f,350,2,new uint[]{350,400})))})
+        {
+            decisions.Clear();
+            try
+            {
+                SonyIso.WriteProfile(baseM, baseM.ProfileGuard(), "M", f, 400, 350, (k,d) => decisions.Add(d), () => wrong, () => wrong, noDelay);
+                throw new Exception("Unexpected confirmation");
+            }
+            catch (InvalidOperationException) { Check(decisions.SequenceEqual(new[] {-1}), "stop at first uncertain notch"); }
+        }
+        uint opening = 400;
+        decisions.Clear();
+        try {
+            SonyIso.WriteProfile(baseM, baseM.ProfileGuard(), "M", f, 400, 900, (k,d) => decisions.Add(d),
+                () => exposure(++opening, 0x1003c), unexpected, noDelay);
+            throw new Exception("Unbounded profile steps");
+        }
+        catch (InvalidOperationException) { Check(decisions.Count == 64, "bounded confirmed movement"); }
+    }
+
     private static uint Read(byte[] properties)
     {
         return SonyIso.Read(delegate(ushort opcode, uint[] args)
@@ -408,6 +515,7 @@ internal static class SonyIsoTests
             @"SWD\OTHER\_??_USB#VID_054C&PID_0CAA", @"USB\VID_ffff&PID_0CAA\USB\VID_054C&PID_0CAA"})
             if (Wpd.IsSonyUsbId(id)) throw new Exception("Unexpected Sony PnP ID");
         WpdSelection();
+        ProfileTests();
         StepTests();
         ExposureStepTests();
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)

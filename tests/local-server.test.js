@@ -6,7 +6,7 @@ const {once} = require("node:events");
 const {createApp} = require("../local/server.js");
 const {SimulationAdapter} = require("../transfer-engine.js");
 
-async function setup(t, windowsIso = null, windowsStep = null, readExposure = null, stepExposure = null) {
+async function setup(t, windowsIso = null, windowsStep = null, readExposure = null, stepExposure = null, windowsProfile = null) {
   const adapter = new SimulationAdapter("M");
   const writes = [];
   const write = adapter.write.bind(adapter);
@@ -14,7 +14,7 @@ async function setup(t, windowsIso = null, windowsStep = null, readExposure = nu
     writes.push(args[0]);
     return write(...args);
   };
-  const app = createApp(adapter, windowsIso, windowsStep, readExposure, stepExposure);
+  const app = createApp(adapter, windowsIso, windowsStep, readExposure, stepExposure, windowsProfile);
   app.listen(0, "127.0.0.1");
   await once(app, "listening");
   t.after(() => new Promise(resolve => {
@@ -294,4 +294,42 @@ test("Abweichende Rücklesungen, neue Vorschauen und gesperrte Felder bestätige
     assert.equal((await step(stepTicket)).status, 502);
     assert.equal((await step(stepTicket)).status, 409);
   }
+});
+
+test("Native Profilaufträge bleiben an Kameraweg, Sitzung und die aktuelle Vorschau gebunden", async t => {
+  const windows = new SimulationAdapter("M");
+  const {origin, post, session, writes} = await setup(t, null, null, null, null, windows);
+  const first = await (await fetch(origin + "/api/session")).json();
+  const other = await session();
+  assert.equal(first.windowsProfile, true);
+  const transport = "windows";
+  const read = async () => (await post("read", first.token, {transport})).json();
+  const expected = await read();
+  assert.equal(expected.transport, transport);
+  assert.equal((await post("apply", other, {transport, profile, expected})).status, 409);
+  assert.equal((await post("apply", first.token, {profile, expected})).status, 409);
+  assert.equal((await post("apply", first.token, {transport: "other", profile, expected})).status, 400);
+  assert.deepEqual(writes, []);
+  // A fresh preview over a different transport also revokes this ticket.
+  const gphoto = await (await post("read", other, {})).json();
+  assert.equal((await post("apply", first.token, {transport, expected, profile})).status, 409);
+  assert.equal((await post("apply", other, {transport, expected: gphoto, profile})).status, 409);
+  const ticket = (await read()).ticket;
+  const response = await post("apply", first.token, {transport, expected: {ticket}, profile});
+  const result = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(result.status, "confirmed");
+  assert.deepEqual(result.rows.map(row => row.current), [100, 8, 1]);
+  assert.equal((await post("apply", first.token, {transport, expected: {ticket}, profile})).status, 409);
+  assert.deepEqual(writes, []);
+});
+
+test("Natives Profil auf einem Host ohne WPD führt keinen Fallback-Schreibauftrag aus", async t => {
+  const {post, session, writes} = await setup(t);
+  const token = await session();
+  const expected = await (await post("read", token, {})).json();
+  assert.equal((await post("read", token, {transport: "windows"})).status, 409);
+  assert.equal((await post("apply", token, {transport: "windows", profile, expected})).status, 409);
+  assert.equal((await post("read", token, {transport: null})).status, 400);
+  assert.deepEqual(writes, []);
 });

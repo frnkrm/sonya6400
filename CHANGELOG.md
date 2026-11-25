@@ -2,6 +2,10 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## Native Profilübertragung unter Windows (v12)
+
+- Die lokale Windows-App liest jetzt ISO, Blende und Zeit für eine gemeinsame Vorschau. Nach einem Klick auf **Einstellungen übertragen** versucht sie die schreibbaren Profilwerte einzustellen und zeigt für jedes Feld die Rücklesung. Windows-Einzeltests und gphoto2 über WSL sind weiterhin separat erreichbar. [Einrichtung und Gerätetest](docs/WINDOWS-USB.md#ein-profil-mit-windows-übertragen)
+
 ## Einzeltests für Blende und Belichtungszeit unter Windows (v11)
 
 - Unter **Windows-Test** lässt sich jetzt auch die Blende oder die Belichtungszeit der α6400 lesen. Im Fotomodus M gibt es je Feld einen einzelnen relativen Schreibschritt. Für die Blende wird ausgehend von f/8 die Rücklesung f/9 erwartet, für die Zeit ausgehend von 1/125 s die Rücklesung 1/160 s. Bei beiden Windows-Gerätetests stimmten automatische Rücklesung und Kameradisplay überein. Auch nach Abziehen des USB-Kabels und nach einem Neustart zeigte die α6400 in M weiterhin ISO 500, f/9 und 1/160 s. [Anleitung für die Versuche](docs/WINDOWS-USB.md#zuerst-die-blende-testen)

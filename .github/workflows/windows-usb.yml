@@ -23,8 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Adapter, Server und Einzelübertragung prüfen
-        run: node --test tests/gphoto.test.js tests/local-server.test.js tests/transfer-engine.test.js tests/windows-iso.test.js
+      - name: Adapter, Server und Profilübertragung prüfen
+        run: node --test tests/gphoto.test.js tests/local-server.test.js tests/transfer-engine.test.js tests/windows-iso.test.js tests/windows-profile.test.js
       - name: Nativen Windows-Leser kompilieren und Sony-Datenformat prüfen
         shell: pwsh
         run: |
@@ -48,6 +48,7 @@ jobs:
               } catch { Start-Sleep -Milliseconds 500 }
             }
             if ($session.token -notmatch '^[a-f0-9]{64}$') { throw "Lokale Sitzung fehlt." }
+            if ($session.windowsProfile -ne $true) { throw "Windows-Profiladapter fehlt." }
           } finally {
             if (!$process.HasExited) { taskkill.exe /PID $process.Id /T /F }
           }
