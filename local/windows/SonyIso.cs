@@ -1,6 +1,5 @@
-// Reader for Sony SDIO v200. Wpd.OpenSony must first verify the ILCE-6400
-// model and its PC Remote USB VID/PID. The transport handles WPD sessions,
-// response codes and reads only device-to-host payloads.
+// Sony SDIO v200. Wpd.OpenSony must verify the ILCE-6400 model and its PC
+// Remote USB VID/PID. The transport checks command/transfer response codes.
 // Protocol: https://github.com/qkhanhpro/simplealphadroid/blob/197c206/docs/PROTOCOL.md
 // ISO encoding: libgphoto2/camlibs/ptp2/config.c, _stringify_Sony_ISO.
 using System;
@@ -13,7 +12,33 @@ internal static class SonyIso
     private const ushort UInt32Type = 0x0006;
     private const int MaxPayload = 4 * 1024 * 1024;
 
+    private const uint ManualExposure = 1;
+    private const uint InitialIso = 400;
+    private const uint TargetIso = 500;
+
+    internal sealed class Snapshot
+    {
+        public readonly uint Iso;
+        public readonly uint ExposureMode;
+        public readonly string StepBlock;
+        public bool CanStep { get { return StepBlock == null; } }
+
+        internal Snapshot(uint iso, uint mode, string isoBlock)
+        {
+            Iso = iso;
+            ExposureMode = mode;
+            if (iso != InitialIso) StepBlock = "iso";
+            else if (mode != ManualExposure) StepBlock = "mode";
+            else StepBlock = isoBlock;
+        }
+    }
+
     internal static uint Read(Func<ushort, uint[], byte[]> receive)
+    {
+        return Preview(receive).Iso;
+    }
+
+    internal static Snapshot Preview(Func<ushort, uint[], byte[]> receive)
     {
         if (receive == null) throw new ArgumentNullException("receive");
 
@@ -30,7 +55,30 @@ internal static class SonyIso
             Thread.Sleep(100);
         }
         receive(0x9201, new uint[] { 3, 0, 0 });
-        return CurrentIso(receive(0x9209, new uint[] { 0 }));
+        return ParseSnapshot(receive(0x9209, new uint[] { 0 }));
+    }
+
+    internal static uint Step(Func<ushort, uint[], byte[]> receive, Action stepUp)
+    {
+        if (stepUp == null) throw new ArgumentNullException("stepUp");
+        Snapshot before = Preview(receive);
+        if (!before.CanStep)
+            throw new InvalidOperationException("Schreibtest gesperrt. Die Kamera muss in M normales ISO 400 und die nächste freigegebene Stufe 500 melden.");
+
+        // One command, even if the response is lost. All subsequent calls are
+        // reads on the same WPD session. A repeat reading of 400 may be stale.
+        stepUp();
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            if (attempt > 0) Thread.Sleep(250);
+            Snapshot actual = ParseSnapshot(receive(0x9209, new uint[] { 0 }));
+            if (actual.ExposureMode != ManualExposure)
+                throw new InvalidOperationException("Der Modus M wurde beim Rücklesen nicht bestätigt. ISO an der Kamera prüfen.");
+            if (actual.Iso == TargetIso) return actual.Iso;
+            if (actual.Iso != InitialIso)
+                throw new InvalidOperationException("Die Kamera meldet einen abweichenden ISO-Wert. ISO an der Kamera prüfen.");
+        }
+        throw new InvalidOperationException("Beim Rücklesen meldet die Kamera weiterhin ISO 400. Der Schritt auf ISO 500 ist unbestätigt.");
     }
 
     private static bool HasDeviceInfo(byte[] payload)
@@ -50,7 +98,7 @@ internal static class SonyIso
         return properties != 0 || controls != 0;
     }
 
-    private static uint CurrentIso(byte[] payload)
+    private static Snapshot ParseSnapshot(byte[] payload)
     {
         var data = new Packet(payload);
         uint entries = data.UInt32();
@@ -58,17 +106,38 @@ internal static class SonyIso
         if (reserved != 0 || entries > MaxPayload / 9)
             throw new InvalidDataException("Ungültiger Kopf der Sony-Eigenschaftsliste.");
         uint? iso = null;
+        uint? mode = null;
+        string isoBlock = null;
         for (uint index = 0; index < entries; index++)
         {
             ushort property = data.UInt16();
             ushort type = data.UInt16();
-            data.Skip(2); // Access, enabled
+            byte access = data.Byte();
+            byte enabled = data.Byte();
             data.SkipValue(type); // Factory default
             if (property == IsoProperty)
             {
                 if (iso.HasValue || type != UInt32Type)
                     throw new InvalidDataException("Mehrdeutige ISO-Angabe oder unbekannter ISO-Datentyp.");
                 iso = data.UInt32();
+                bool hasPair = data.IsoStepChoices();
+                // libgphoto2 ptp_unpack_Sony_DPD: in v200 a regular ISO
+                // property can be adjustable with GetSet=0 and IsEnabled=1.
+                // 0x82 denotes a notch control. Reject display-only, disabled
+                // and unfamiliar states for this first hardware write.
+                if (enabled != 1 || (access != 0 && access != 1 && access != 0x82)) isoBlock = "access";
+                else if (!hasPair) isoBlock = "choices";
+                continue; // IsoStepChoices consumed this descriptor's form.
+            }
+            else if (property == 0x500E)
+            {
+                // Exposure Program Mode is UINT16 in the ILCE-6400 v200
+                // dataset. A missing/ambiguous mode disables writing while
+                // preserving the ISO readout from older snapshots.
+                uint reported = 0;
+                if (type == 0x0004) reported = data.UInt16();
+                else data.SkipValue(type);
+                mode = mode.HasValue ? 0 : reported;
             }
             else
             {
@@ -81,7 +150,7 @@ internal static class SonyIso
             throw new InvalidDataException("Die Kamera hat keinen aktuellen Sony-ISO-Wert gemeldet.");
         // Preserve the complete property. The Windows reader decodes its sensitivity
         // and mode byte separately, including values it can only report as raw.
-        return iso.Value;
+        return new Snapshot(iso.Value, mode.GetValueOrDefault(), isoBlock);
     }
 
     // Advance only along the declared, length-checked PTP records. In
@@ -113,7 +182,7 @@ internal static class SonyIso
             offset += (int)length;
         }
 
-        private byte Byte()
+        internal byte Byte()
         {
             Skip(1);
             return bytes[offset - 1];
@@ -148,9 +217,42 @@ internal static class SonyIso
             Skip((ulong)count * (uint)width);
         }
 
-        internal void SkipForm(ushort type)
+        internal bool IsoStepChoices()
         {
             byte form = Byte();
+            if (form != 2)
+            {
+                SkipFormValues(UInt32Type, form);
+                return false;
+            }
+            int count = UInt16();
+            int initial = -1, target = -1;
+            bool ambiguous = false;
+            for (int i = 0; i < count; i++)
+            {
+                uint item = UInt32();
+                if (item == InitialIso)
+                {
+                    if (initial >= 0) ambiguous = true;
+                    initial = i;
+                }
+                else if (item == TargetIso)
+                {
+                    if (target >= 0) ambiguous = true;
+                    target = i;
+                }
+                else if (item > InitialIso && item < TargetIso) ambiguous = true;
+            }
+            return !ambiguous && initial >= 0 && target == initial + 1;
+        }
+
+        internal void SkipForm(ushort type)
+        {
+            SkipFormValues(type, Byte());
+        }
+
+        private void SkipFormValues(ushort type, byte form)
+        {
             int count;
             switch (form)
             {

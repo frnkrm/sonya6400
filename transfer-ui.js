@@ -24,6 +24,8 @@ const TransferUI = (() => {
   let token;
   let connecting;
   let windowsIso = false;
+  let stepTicket;
+  let expiryTimer;
   let revision = 0;
   let busy = false;
   let pendingRead = false;
@@ -79,13 +81,15 @@ const TransferUI = (() => {
               <a href="https://github.com/frnkrm/sonya6400/blob/main/docs/WINDOWS-USB.md">Windows-Anleitung</a></p>
             <p>Unter Linux im Projektordner <code>node local/server.js</code> starten.
               <a href="https://github.com/frnkrm/sonya6400/blob/main/docs/DEVELOPMENT.md#lokale-usb-anwendung">Linux-Einrichtung</a></p>
-            <p>Auf dem Kameracomputer <code>http://127.0.0.1:8765/</code> öffnen und das Profil laden.
-              Die Prüfung an einer echten α6400 steht aus.</p>
+            <p>Auf dem Kameracomputer <code>http://127.0.0.1:8765/</code> öffnen. Für die Profilübertragung das gewünschte Profil laden.</p>
           </div>
-          <p id="transfer-native-help" hidden>Für den Windows-Lesetest Imaging Edge Remote schließen und die Kamera
-            direkt mit Windows verbinden. Für Übertragungen dient die separate USB-Vorschau über gphoto2.</p>
+          <p id="transfer-native-help" hidden>Imaging Edge Remote schließen und die Kamera direkt mit Windows verbinden.
+            Für den Einzelschritt Modus M und feste ISO 400 einstellen und „ISO über Windows lesen“ wählen.
+            Gibt die Kamera die nächste Stufe frei, kannst du ISO 500 mit einem eigenen Klick einstellen und zurücklesen.
+            Für das gesamte Profil die USB-Vorschau über gphoto2 verwenden.</p>
           <div class="transfer-actions">
             <button type="button" id="transfer-windows" class="chip" hidden>ISO über Windows lesen</button>
+            <button type="button" id="transfer-windows-step" class="chip" hidden disabled>ISO von 400 auf 500 ändern</button>
             <button type="button" id="transfer-read" class="chip">Simulationswerte lesen</button>
             <button type="button" id="transfer-iso" class="chip" disabled>Nur ISO übertragen</button>
             <button type="button" id="transfer-apply" class="chip on" disabled>Einstellungen übertragen</button>
@@ -101,7 +105,7 @@ const TransferUI = (() => {
             <p>Für USB an der α6400 unter USB-Verbindung „PC-Fernbedienung“ wählen. Ein Datenkabel verwenden, andere Fernsteuerungsprogramme schließen und in der lokalen Anwendung die Istwerte lesen.</p>
             <p>Die JSON-Datei dient dieser Anwendung. Ein direkter Sony-Import an der Kamera ist damit nicht möglich. Am Moduswahlrad den angegebenen Modus wählen und die manuellen Schritte an der Kamera ausführen. Ein dauerhaftes MR-Profil wird separat an der Kamera gespeichert.</p>
             <p>Für Imaging Edge Mobile unter MENU → Netzwerk „Strg mit Smartphone“ einschalten und das Smartphone per QR-Code oder SSID verbinden. NFC kann die WLAN-Verbindung einrichten. In IEM die Aufnahmeparameter von Hand einstellen.</p>
-            <p>Die praktische Hardwareprüfung mit einer α6400 ist offen.</p>
+            <p>Das native Lesen von ISO 400 wurde an einer α6400 bestätigt. Die Hardwareprüfung des ISO-Schreibschritts steht aus.</p>
           </div></details>
         </div>
       </details>`;
@@ -122,6 +126,7 @@ const TransferUI = (() => {
     };
     el("read").onclick = () => read();
     el("windows").onclick = () => read(true);
+    el("windows-step").onclick = stepWindows;
     el("apply").onclick = () => apply();
     el("iso").onclick = () => apply("iso");
   }
@@ -161,6 +166,8 @@ const TransferUI = (() => {
     el("usb-help").hidden = !usb;
     el("windows").hidden = !usb || !local || !windowsIso;
     el("windows").disabled = busy || el("windows").hidden;
+    el("windows-step").hidden = el("windows").hidden;
+    el("windows-step").disabled = busy || el("windows-step").hidden || !stepTicket;
     el("native-help").hidden = el("windows").hidden;
     el("read").textContent = usb ? "USB-Istwerte lesen" : "Simulationswerte lesen";
     el("read").disabled = busy || !profile() || (usb && !local);
@@ -174,8 +181,14 @@ const TransferUI = (() => {
     el("current").hidden = !imported && !disabledProfile;
   }
 
+  function clearStep() {
+    clearTimeout(expiryTimer);
+    stepTicket = null;
+  }
+
   function invalidate(message) {
     revision++;
+    clearStep();
     snapshot = null;
     el("rows").replaceChildren();
     el("manual").replaceChildren();
@@ -311,6 +324,25 @@ const TransferUI = (() => {
           if (revision !== active) return;
           el("status").textContent = "Windows · Sony " + result.model + " · " + windowsIsoLabel(result) +
             " · gelesen um " + new Date().toLocaleTimeString("de-DE");
+          if (result.iso === 400) {
+            if (result.mode === undefined && result.rawIso === undefined &&
+                typeof result.stepTicket === "string" && /^[0-9a-f]{32}$/u.test(result.stepTicket)) {
+              stepTicket = result.stepTicket;
+              expiryTimer = setTimeout(() => {
+                clearStep();
+                el("status").textContent += " Freigabe abgelaufen. ISO über Windows erneut lesen.";
+                controls();
+              }, 120_000);
+            } else if (result.stepBlock === "mode") {
+              el("status").textContent += " Die Kamera meldet keinen Fotomodus M. Moduswahlrad auf M stellen und erneut lesen.";
+            } else if (result.stepBlock === "access") {
+              el("status").textContent += " Im Modus M meldet die Kamera keine Schreibfreigabe für ISO.";
+            } else if (result.stepBlock === "choices") {
+              el("status").textContent += " Die Kamera meldet ISO 500 nicht als eindeutige nächste Stufe nach ISO 400.";
+            } else {
+              el("status").textContent += " Für den Einzelschritt M und feste ISO 400 wählen. Die Kamera muss ISO 500 als nächste Stufe anbieten. Anschließend erneut lesen.";
+            }
+          }
           return;
         }
         state = await request("/api/read", {});
@@ -326,6 +358,35 @@ const TransferUI = (() => {
       if (revision === active) invalidate((native ? "Windows-Lesetest: " : "Nicht verbunden. ") + error.message);
     } finally {
       busy = pendingRead = false;
+      controls();
+    }
+  }
+
+  async function stepWindows() {
+    if (busy || el("windows-step").disabled || !stepTicket) return;
+    busy = true;
+    const ticket = stepTicket;
+    invalidate("Windows · ISO 500 wird eingestellt und zurückgelesen …");
+    const record = {
+      revision, target: "Windows · Sony ILCE-6400 · ISO 400 auf ISO 500",
+      time: new Date().toLocaleTimeString("de-DE"), message: "", result: null
+    };
+    try {
+      const result = await request("/api/windows-iso-step", {ticket});
+      if (result.model !== "ILCE-6400" || result.iso !== 500) throw new Error("Unerwartete Rücklesung.");
+      record.message = "Windows · Sony ILCE-6400 · ISO 500 bestätigt zurückgelesen.";
+    } catch (error) {
+      record.message = "Windows · ISO-Schritt unbestätigt. " + error.message + " Aktuellen Wert über Windows erneut lesen.";
+    } finally {
+      lastTransfer = record;
+      showHistory();
+      if (record.revision === revision) {
+        el("status").textContent = record.message;
+      } else {
+        el("history").open = true;
+        el("status").textContent = "Ergebnis des vorherigen Windows-Schritts unter „Letzte Übertragung“. Aktuelle Istwerte neu lesen.";
+      }
+      busy = false;
       controls();
     }
   }

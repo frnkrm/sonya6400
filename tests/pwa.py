@@ -22,6 +22,7 @@ V4 = "1aa7cd744d18c9460127836e7d678ce6670a92ee"
 V5 = "3449a1f2819b8b1b97279861746efd06050038bf"
 V6 = "5dc338e8f7a0cafb90ef61425ff5d0590369dece"
 V7 = "ca5aac4c0656b24458b711f2613e612b7e9165e3"
+V8 = "fa280c7b26e106c0f5b77591ac4a32f694f13316"
 
 
 class Deploy(SimpleHTTPRequestHandler):
@@ -191,6 +192,29 @@ class OfflineAndUpdate(unittest.TestCase):
         expect(self.tab.locator("#transfer-status")).to_contain_text("Kamera hat geantwortet")
         expect(self.tab.locator("#transfer-status")).to_contain_text("0xCAFE1234")
         expect(self.tab.locator("#transfer-apply")).to_be_disabled()
+
+    def test_v8_client_updates_to_explicit_windows_step(self):
+        self.http.old_files = {
+            name: subprocess.check_output(["git", "show", f"{V8}:{name}"], cwd=ROOT)
+            for name in ("index.html", "sw.js", "transfer-ui.js")
+        }
+        self.http.legacy = True
+        self.open_app()
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", "v8")
+        self.assertEqual(self.tab.locator("#transfer-windows-step").count(), 0)
+        self.http.legacy = False
+        self.tab.evaluate("navigator.serviceWorker.ready.then(reg => reg.update()).then(() => true)")
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", RELEASE)
+        self.tab.route("**/api/session", lambda route: route.fulfill(json={"token": "fixture", "windowsIso": True}))
+        self.tab.route("**/api/windows-iso", lambda route: route.fulfill(
+            json={"model": "ILCE-6400", "iso": 400}
+        ))
+        self.tab.locator("#transfer-panel > summary").click()
+        self.tab.locator("#transfer-source").select_option("usb")
+        self.tab.locator("#transfer-windows").click()
+        expect(self.tab.locator("#transfer-status")).to_contain_text("M und feste ISO 400")
+        expect(self.tab.locator("#transfer-windows-step")).to_be_visible()
+        expect(self.tab.locator("#transfer-windows-step")).to_be_disabled()
 
     def test_failed_update_and_upgrade_of_existing_tab_and_installed_app(self):
         self.http.old_files = {

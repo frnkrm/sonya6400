@@ -1,10 +1,11 @@
 // Windows SDK: PortableDeviceApi.h, PortableDeviceTypes.h, PortableDevice.h,
 // WpdMtpExtensions.h (microsoft/win32metadata, generation/WinSDK/RecompiledIdlHeaders/um).
-// WPD owns the USB/PTP session. This process sends only Sony negotiation and read operations.
+// WPD owns the USB/PTP session. The only write operation is one upward ISO step.
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -12,7 +13,7 @@ internal sealed class Wpd : IDisposable
 {
     private const int MaxReply = 4 * 1024 * 1024;
     private const uint MaxChunk = 64 * 1024;
-    private const uint ExecuteRead = 13, ReadChunk = 15, EndTransfer = 17;
+    private const uint ExecuteRead = 13, ExecuteWrite = 14, ReadChunk = 15, WriteChunk = 16, EndTransfer = 17;
     private static readonly Guid Mtp = new Guid("4D545058-1A2E-4106-A357-771E0819FC56");
     private static readonly Guid Common = new Guid("F0422A9C-5DC8-4440-B5BD-5DF28835658A");
     private static readonly Guid Client = new Guid("204D9F0C-2292-4080-9F42-40664E70F859");
@@ -37,11 +38,24 @@ internal sealed class Wpd : IDisposable
     private static Key TotalSize = new Key(Mtp, 1007);
     private static Key RequestedBytes = new Key(Mtp, 1008);
     private static Key ReturnedBytes = new Key(Mtp, 1009);
+    private static Key BytesToWrite = new Key(Mtp, 1010);
+    private static Key BytesWritten = new Key(Mtp, 1011);
     private static Key TransferData = new Key(Mtp, 1012);
     private static Key OptimalSize = new Key(Mtp, 1013);
 
     private IDevice device;
-    private Wpd(IDevice opened) { device = opened; }
+    internal string DeviceKey { get; private set; }
+
+    private Wpd(IDevice opened, string endpoint)
+    {
+        // Windows endpoint names are case-insensitive. Never expose the raw path.
+        using (var sha = SHA256.Create())
+        {
+            byte[] digest = sha.ComputeHash(Encoding.UTF8.GetBytes(endpoint.ToUpperInvariant()));
+            DeviceKey = BitConverter.ToString(digest).Replace("-", "").ToLowerInvariant();
+        }
+        device = opened;
+    }
 
     private static T Create<T>(Guid clsid)
     {
@@ -78,7 +92,7 @@ internal sealed class Wpd : IDisposable
             client.SetUnsignedIntegerValue(ref QualityOfService, 0x00020000);
             // Vendor commands use the driver's standard WPD command channel.
             opened.Open(id, client);
-            Wpd result = new Wpd(opened);
+            Wpd result = new Wpd(opened, id);
             opened = null;
             return result;
         }
@@ -327,17 +341,7 @@ internal sealed class Wpd : IDisposable
             started = Command(ExecuteRead, delegate(IValues v)
             {
                 v.SetUnsignedIntegerValue(ref OperationCode, opcode);
-                IParams args = Create<IParams>(CollectionClass);
-                try
-                {
-                    foreach (uint p in parameters)
-                    {
-                        var value = new UIntVariant { Type = 19, Value = p }; // VT_UI4
-                        args.Add(ref value);
-                    }
-                    v.SetIPortableDevicePropVariantCollectionValue(ref OperationParameters, args);
-                }
-                finally { Release(args); }
+                SetArguments(v, parameters);
             });
             started.GetStringValue(ref Context, out context);
             if (String.IsNullOrEmpty(context)) throw new InvalidDataException("WPD lieferte keinen Transferkontext.");
@@ -363,6 +367,72 @@ internal sealed class Wpd : IDisposable
             if (!String.IsNullOrEmpty(context) && !endAttempted)
             {
                 // Finish even a short or malformed transfer; preserve the original read error.
+                try { End(context); } catch (COMException) { } catch (InvalidOperationException) { }
+            }
+        }
+    }
+
+    private static void SetArguments(IValues request, params uint[] parameters)
+    {
+        IParams args = Create<IParams>(CollectionClass);
+        try
+        {
+            foreach (uint p in parameters)
+            {
+                var value = new UIntVariant { Type = 19, Value = p }; // VT_UI4
+                args.Add(ref value);
+            }
+            request.SetIPortableDevicePropVariantCollectionValue(ref OperationParameters, args);
+        }
+        finally { Release(args); }
+    }
+
+    // ILCE-6400 SDIO v200: ControlDevice on ISO with a four-byte signed step.
+    // https://github.com/qkhanhpro/simplealphadroid/blob/197c206/docs/PROTOCOL.md
+    internal void StepIsoUp()
+    {
+        if (device == null) throw new ObjectDisposedException("Wpd");
+        const string operation = "Sony ISO-Schritt (0x9207, 0xD21E)";
+        byte[] step = { 1, 0, 0, 0 };
+        string context = null;
+        bool endAttempted = false;
+        IValues started = null, written = null;
+        try
+        {
+            started = Command(ExecuteWrite, delegate(IValues request)
+            {
+                request.SetUnsignedIntegerValue(ref OperationCode, 0x9207);
+                SetArguments(request, 0xD21E);
+                request.SetUnsignedLargeIntegerValue(ref TotalSize, (ulong)step.Length);
+            });
+            started.GetStringValue(ref Context, out context);
+            if (String.IsNullOrEmpty(context)) throw new InvalidDataException("WPD lieferte keinen Transferkontext.");
+            uint blockSize;
+            started.GetUnsignedIntegerValue(ref OptimalSize, out blockSize);
+            if (blockSize < step.Length) throw new InvalidDataException("Der WPD-Schreibpuffer reicht für den ISO-Schritt nicht aus.");
+            written = Command(WriteChunk, delegate(IValues request)
+            {
+                request.SetStringValue(ref Context, context);
+                request.SetUnsignedIntegerValue(ref BytesToWrite, (uint)step.Length);
+                request.SetBufferValue(ref TransferData, step, (uint)step.Length);
+            });
+            uint count;
+            written.GetUnsignedIntegerValue(ref BytesWritten, out count);
+            if (count != step.Length) throw new InvalidDataException("WPD bestätigt die vier ISO-Datenbytes nicht vollständig.");
+            endAttempted = true;
+            End(context);
+        }
+        catch (COMException e) { throw Failure(operation, e.ErrorCode); }
+        catch (UnauthorizedAccessException e) { throw Failure(operation, e.HResult); }
+        catch (InvalidOperationException e) { throw new InvalidOperationException(operation + ": " + e.Message, e); }
+        catch (InvalidDataException e) { throw new InvalidDataException(operation + ": " + e.Message, e); }
+        finally
+        {
+            Release(written);
+            Release(started);
+            // Close the existing context on failure. Never resend the Sony command or its data.
+            if (!String.IsNullOrEmpty(context) && !endAttempted)
+            {
                 try { End(context); } catch (COMException) { } catch (InvalidOperationException) { }
             }
         }
@@ -517,7 +587,7 @@ internal sealed class Wpd : IDisposable
         void GetUnsignedIntegerValue([In] ref Key key, out uint value);
         void SetSignedIntegerValue();
         void GetSignedIntegerValue();
-        void SetUnsignedLargeIntegerValue();
+        void SetUnsignedLargeIntegerValue([In] ref Key key, ulong value);
         void GetUnsignedLargeIntegerValue([In] ref Key key, out ulong value);
         void SetSignedLargeIntegerValue();
         void GetSignedLargeIntegerValue();

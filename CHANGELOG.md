@@ -2,6 +2,11 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## Einmaliger Windows-Test von ISO 400 auf 500 (v9)
+
+- Mit v8 zeigten die native WPD-Lesung im Kompass und das Display der angeschlossenen α6400 übereinstimmend **feste ISO 400**. Die übrigen Gerätewerte und Fähigkeiten aus H-01 bleiben offen. [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
+- Im Fotomodus M bietet eine frische native Vorschau **ISO von 400 auf 500 ändern** an, wenn das Gerät diesen Einzelschritt freigibt. Nach dem ausdrücklichen Klick sendet die App den Schreibbefehl einmal und liest den tatsächlichen Wert zurück. Der physische Schreibversuch ist offen. [Testanleitung](docs/WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
+
 ## ISO-Wert und Mehrbild-Rauschminderung unter Windows
 
 - Der native ISO-Lesetest wertet die unteren 24 Bit als Empfindlichkeitsangabe und das obere Byte als Modus aus. Bekannte Stufen der Mehrbild-Rauschminderung erscheinen ausdrücklich. Bei unbekannter Kodierung liefert die Meldung den vollständigen Hexwert für den [Vergleich am Kameradisplay](docs/WINDOWS-USB.md).

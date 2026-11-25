@@ -70,7 +70,11 @@ class TransferFlow(BrowserCase):
              "fs.appendFileSync(dir+'/native-reads', 'read\\n');"
              "if(fs.existsSync(dir+'/native-error'))throw Error('Kamera getrennt.');"
              "if(fs.existsSync(dir+'/native-result'))return JSON.parse(fs.readFileSync(dir+'/native-result','utf8'));"
-             "return {model:'ILCE-6400',iso:400}; });"
+             "return {model:'ILCE-6400',iso:400}; }, async key => {"
+             "if(key!=='ab'.repeat(32))throw Error('Schlüssel passt nicht.');"
+             "fs.appendFileSync(dir+'/native-steps', 'step\\n');"
+             "if(fs.existsSync(dir+'/step-error'))throw Error('Rücklesung fehlgeschlagen.');"
+             "return {model:'ILCE-6400',iso:500}; });"
              "s.listen(0,'127.0.0.1',()=>console.log(s.address().port))"],
             cwd=ROOT, env=env, stdout=subprocess.PIPE, text=True
         )
@@ -187,6 +191,9 @@ class TransferFlow(BrowserCase):
         fixture = self.fixture / "native-result"
         self.addCleanup(fixture.unlink, missing_ok=True)
         for reading, label in [
+            ({"iso": 400, "stepBlock": "access"}, "keine Schreibfreigabe für ISO"),
+            ({"iso": 400, "stepBlock": "choices"}, "nicht als eindeutige nächste Stufe"),
+            ({"iso": 400, "stepBlock": "mode"}, "keinen Fotomodus M"),
             ({"iso": "auto", "mode": "mfnr"}, "ISO Auto · Mehrbild-Rauschminderung ·"),
             ({"iso": 409600, "mode": "mfnrPlus"}, "ISO 409.600 · Mehrbild-Rauschminderung Plus ·"),
             ({"iso": 400, "mode": "unknown", "rawIso": "0xA5000190"}, "ISO 400 · Modus unbekannt · Rohwert 0xA5000190"),
@@ -209,6 +216,51 @@ class TransferFlow(BrowserCase):
         expect(page.locator("#transfer-apply")).to_be_disabled()
         page.locator("#transfer-source").select_option("simulation")
         expect(button).to_be_hidden()
+
+    def test_windows_step_requires_fresh_read_and_deliberate_click(self):
+        self.open_panel(self.companion)
+        page = self.page
+        page.locator("#transfer-source").select_option("usb")
+        read = page.get_by_role("button", name="ISO über Windows lesen")
+        step = page.get_by_role("button", name="ISO von 400 auf 500 ändern")
+        status = page.locator("#transfer-status")
+        expect(step).to_be_disabled()
+        read.click()
+        expect(status).to_contain_text("M und feste ISO 400")
+        expect(step).to_be_disabled()
+        result = self.fixture / "native-result"
+        self.addCleanup(result.unlink, missing_ok=True)
+        result.write_text(json.dumps({"model": "ILCE-6400", "iso": 400, "stepKey": "ab" * 32}))
+        calls = self.fixture / "native-steps"
+        read.click()
+        expect(step).to_be_enabled()
+        self.assertFalse(calls.exists())
+        step.press("Enter")
+        expect(status).to_contain_text("ISO 500 bestätigt zurückgelesen")
+        expect(step).to_be_disabled()
+        fail = self.fixture / "step-error"
+        fail.touch()
+        self.addCleanup(fail.unlink, missing_ok=True)
+        read.click()
+        step.click()
+        expect(status).to_contain_text("ISO-Schritt unbestätigt")
+        expect(status).to_contain_text("erneut lesen")
+        expect(step).to_be_disabled()
+        self.assertEqual(calls.read_text().splitlines(), ["step", "step"])
+
+        # Eine inzwischen geänderte Empfehlung erhält das Ergebnis als früheren Auftrag.
+        fail.unlink()
+        read.click()
+        expect(step).to_be_enabled()
+        delayed = []
+        page.route("**/api/windows-iso-step", lambda route: delayed.append(route))
+        with page.expect_request("**/api/windows-iso-step"):
+            step.click()
+        page.locator('#f-lens [data-value="s50"]').click()
+        delayed[0].fulfill(response=delayed[0].fetch())
+        expect(status).to_contain_text("Ergebnis des vorherigen Windows-Schritts")
+        expect(page.locator("#transfer-history")).to_contain_text("ISO 500 bestätigt zurückgelesen")
+        expect(step).to_be_disabled()
 
     def test_rejected_aperture_after_confirmed_iso(self):
         state, writes = self.reset_camera()

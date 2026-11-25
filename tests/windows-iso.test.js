@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {access} = require("node:fs/promises");
 const path = require("node:path");
-const {readWindowsIso} = require("../local/windows/iso.js");
+const {readWindowsIso, stepWindowsIso} = require("../local/windows/iso.js");
 
 test("WPD-Leser kompiliert lokale Quellen und akzeptiert nur gültige Messwerte", async () => {
   const cases = [
@@ -54,4 +54,27 @@ test("WPD-Leser trennt Compilerfehler, Treibermeldung und Zeitlimit", async () =
     }}), {code});
     assert.equal(count, failAt);
   }
+});
+
+test("Windows-Einzelschritt bindet Gerätekennung und bestätigt ausschließlich feste ISO 500", async () => {
+  const key = "ab".repeat(32);
+  let calls = 0;
+  await assert.rejects(stepWindowsIso("ungültig", {platform: "win32", exec: () => { calls++; }}), {code: "stale"});
+  assert.equal(calls, 0);
+  async function invoke(step, output) {
+    const options = {platform: "win32", exec: async (file, args) => {
+      if (file.endsWith("csc.exe")) return {};
+      assert.deepEqual(args, step ? ["--step-400-500", key] : []);
+      return {stdout: output};
+    }};
+    return step ? stepWindowsIso(key, options) : readWindowsIso(options);
+  }
+  assert.deepEqual(await invoke(false, "0x00000190 " + key), {model: "ILCE-6400", iso: 400, stepKey: key});
+  for (const stepBlock of ["mode", "access", "choices"])
+    assert.deepEqual(await invoke(false, "0x00000190 !" + stepBlock), {model: "ILCE-6400", iso: 400, stepBlock});
+  assert.deepEqual(await invoke(true, "0x000001F4"), {model: "ILCE-6400", iso: 500});
+  for (const invalid of ["0x01000190 " + key, "0x00000190 bad", "0x00000190 !other", "0x000001F4 " + key])
+    await assert.rejects(invoke(false, invalid), {code: "readback"});
+  for (const mismatch of ["0x00000190", "0x010001F4", "0x000001F4 " + key])
+    await assert.rejects(invoke(true, mismatch), {code: "readback"});
 });

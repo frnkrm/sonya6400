@@ -42,6 +42,121 @@ internal static class SonyIsoTests
         }
     }
 
+    private static byte[] Capabilities(uint current = 400, byte access = 0, byte enabled = 1,
+        uint[] choices = null, ushort mode = 1, bool includeMode = true)
+    {
+        using (var bytes = new MemoryStream())
+        using (var writer = new BinaryWriter(bytes))
+        {
+            writer.Write((ushort)0xD21E);
+            writer.Write((ushort)6);
+            writer.Write(access);
+            writer.Write(enabled);
+            writer.Write(100u);
+            writer.Write(current);
+            var values = choices ?? new uint[] { 0xFFFFFF, 320, 400, 500, 640, 0x01000190 };
+            writer.Write((byte)2);
+            writer.Write((ushort)values.Length);
+            foreach (uint v in values) writer.Write(v);
+            byte[] iso = bytes.ToArray();
+
+            if (!includeMode) return All(iso);
+            var program = Hex("0e 50 04 00 00 02 02 00 00 00 00");
+            program[8] = (byte)mode;
+            program[9] = (byte)(mode >> 8);
+            return All(iso, program);
+        }
+    }
+
+    private sealed class Session
+    {
+        private readonly Queue<byte[]> snapshots;
+        internal readonly List<string> Commands = new List<string>();
+
+        internal Session(params byte[][] data) { snapshots = new Queue<byte[]>(data); }
+
+        internal byte[] Receive(ushort code, uint[] args)
+        {
+            Commands.Add(code.ToString("X4") + "/" + String.Join(",", args));
+            switch (code)
+            {
+                case 0x9201: return new byte[8];
+                case 0x9202: return Extended;
+                case 0x9209: return snapshots.Dequeue();
+                default: throw new Exception("Unexpected operation");
+            }
+        }
+
+        internal void StepUp() { Commands.Add("step"); }
+    }
+
+    private static void StepTests()
+    {
+        string[] preview = { "9201/1,0,0", "9201/2,0,0", "9202/300", "9201/3,0,0", "9209/0" };
+        var start = Capabilities();
+        var target = Capabilities(500);
+        Check(SonyIso.Preview(new Session(Capabilities(mode: 3)).Receive).StepBlock == "mode", "explain exposure mode");
+        Check(SonyIso.Preview(new Session(Capabilities(enabled: 2)).Receive).StepBlock == "access", "explain access");
+        Check(SonyIso.Preview(new Session(Capabilities(choices: new uint[] {400, 640})).Receive).StepBlock == "choices", "explain choices");
+        foreach (byte flag in new byte[] {0, 1, 0x82})
+        {
+            var session = new Session(Capabilities(access: flag));
+            var result = SonyIso.Preview(session.Receive);
+            Check(result.Iso == 400 && result.ExposureMode == 1 && result.CanStep,
+                "enabled ordinary Sony ISO / notch");
+            Check(session.Commands.SequenceEqual(preview), "preview only reads");
+        }
+        foreach (var notReady in new[] {
+            Capabilities(current: 500), Capabilities(current: 0x01000190), Capabilities(current: 0xFFFFFF),
+            Capabilities(enabled: 0), Capabilities(enabled: 2), Capabilities(access: 0x81), Capabilities(mode: 3),
+            Capabilities(includeMode: false), Capabilities(choices: new uint[] { 500, 400 }),
+            Capabilities(choices: new uint[] { 400, 500, 500 }), Capabilities(choices: new uint[] { 400 }),
+            Capabilities(choices: new uint[] { 400, 450, 500 }), Capabilities(choices: new uint[] { 400, 500, 450 }),
+            Capabilities(choices: new uint[] { 400, 0x010001F4 }),
+            All(Iso(400)), All(Iso(400), Hex("0e 50 04 00 00 00 00 00 01 00 00"))
+        })
+        {
+            // A previously eligible preview cannot authorize a later ineligible session.
+            var session = new Session(notReady);
+            try
+            {
+                SonyIso.Step(session.Receive, session.StepUp);
+                throw new Exception("Unexpected eligibility");
+            }
+            catch (InvalidOperationException) { Check(session.Commands.SequenceEqual(preview), "blocked before write"); }
+        }
+
+        var delayed = new Session(start, start, target);
+        Check(SonyIso.Step(delayed.Receive, delayed.StepUp) == 500, "delayed readback");
+        Check(delayed.Commands.SequenceEqual(preview.Concat(new[] {"step", "9209/0", "9209/0"})),
+            "one write, same connection, no repeated handshake");
+        foreach (var after in new[] { Capabilities(current: 640), Capabilities(current: 0x010001F4),
+            Capabilities(current: 500, mode: 2), Capabilities(current: 500, includeMode: false) })
+        {
+            var session = new Session(start, after);
+            try { SonyIso.Step(session.Receive, session.StepUp); throw new Exception("False confirmation"); }
+            catch (InvalidOperationException) {
+                Check(session.Commands.SequenceEqual(preview.Concat(new[] {"step", "9209/0"})),
+                    "unexpected result stops without another write");
+            }
+        }
+        var stale = new Session(start, start, start, start);
+        try { SonyIso.Step(stale.Receive, stale.StepUp); throw new Exception("False stale confirmation"); }
+        catch (InvalidOperationException) {
+            Check(stale.Commands.SequenceEqual(preview.Concat(new[] {"step", "9209/0", "9209/0", "9209/0"})),
+                "bounded readbacks on unchanged ISO");
+        }
+        var partial = new Session(start, Hex("01 00"));
+        Invalid(() => SonyIso.Step(partial.Receive, partial.StepUp), "truncated readback");
+        Check(partial.Commands.Count(c => c == "step") == 1, "no retry after partial read");
+        var lost = new Session(start);
+        try {
+            SonyIso.Step(lost.Receive, delegate { lost.StepUp(); throw new IOException("USB disconnected"); });
+            throw new Exception("Lost write response became success");
+        }
+        catch (IOException) { Check(lost.Commands.SequenceEqual(preview.Concat(new[] {"step"})), "lost acknowledgement"); }
+    }
+
     private static uint Read(byte[] properties)
     {
         return SonyIso.Read(delegate(ushort opcode, uint[] args)
@@ -169,6 +284,7 @@ internal static class SonyIsoTests
             @"SWD\OTHER\_??_USB#VID_054C&PID_0CAA", @"USB\VID_ffff&PID_0CAA\USB\VID_054C&PID_0CAA"})
             if (Wpd.IsSonyUsbId(id)) throw new Exception("Unexpected Sony PnP ID");
         WpdSelection();
+        StepTests();
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
             Console.WriteLine("Windows Configuration Manager: {0} active WPD interfaces.", Wpd.PnpInterfaces(false).Count);
         Console.WriteLine("WPD: 10 device ID checks passed.");

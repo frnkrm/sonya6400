@@ -24,7 +24,7 @@ Stand 25. November 2026. Die Pläne ordnen jede Anforderung ihrer Abnahme zu. Er
 | C-07, C-08 | Softwaretests und Nachweise für Git und Produktion | [Projektstand](STATUS.md) |
 | H-01 bis H-10 | Erkennung, tatsächliche Schreibbarkeit, Persistenz, MR und ergänzende Möglichkeiten an einer α6400 | [Offenes Hardwareprotokoll](plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll) |
 
-Als nächster Windows-Hardwareversuch steht die native ISO-Rücklesung und der Vergleich mit dem Display der α6400 an. Sony Imaging Edge Remote zeigte ISO 400 an. Für WSL ist am getesteten Setup der Timeout bei PTP OpenSession reproduziert. Profilübertragung und Persistenz bleiben eigenständige Hardwarefälle. [Windows-Lesetest](WINDOWS-USB.md)
+Die native Windows-App und das Display der α6400 zeigten im Gerätetest übereinstimmend feste ISO 400. Der nächste Hardwareversuch ist der einzelne WPD-Schritt von ISO 400 auf 500 im Fotomodus M mit erneutem Vergleich von Rücklesung und Display. Für den separaten WSL-Weg ist am getesteten Setup der Timeout bei PTP OpenSession reproduziert. Profilübertragung und Persistenz bleiben eigenständige Hardwarefälle. [Anleitung für den nativen Einzelschritt](WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
 
 ## Ideenparkplatz
 

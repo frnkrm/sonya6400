@@ -6,7 +6,7 @@ const {once} = require("node:events");
 const {createApp} = require("../local/server.js");
 const {SimulationAdapter} = require("../transfer-engine.js");
 
-async function setup(t, windowsIso = null) {
+async function setup(t, windowsIso = null, windowsStep = null) {
   const adapter = new SimulationAdapter("M");
   const writes = [];
   const write = adapter.write.bind(adapter);
@@ -14,7 +14,7 @@ async function setup(t, windowsIso = null) {
     writes.push(args[0]);
     return write(...args);
   };
-  const app = createApp(adapter, windowsIso);
+  const app = createApp(adapter, windowsIso, windowsStep);
   app.listen(0, "127.0.0.1");
   await once(app, "listening");
   t.after(() => new Promise(resolve => {
@@ -167,4 +167,74 @@ test("Der Windows-Lesetest liefert Modus und unveränderten Rohwert nur zur Anze
     assert.equal((await post("windows-iso", token, {})).status, 502);
   }
   assert.deepEqual(writes, []);
+});
+
+const nativeKey = "ab".repeat(32);
+const qualified = {model: "ILCE-6400", iso: 400, stepKey: nativeKey};
+
+test("Windows-Schritt ist sitzungsgebunden, einmalig und verwendet den internen Schlüssel", async t => {
+  const called = [];
+  const {session, post, writes} = await setup(t, async () => qualified, async key => {
+    called.push(key);
+    return {model: "ILCE-6400", iso: 500};
+  });
+  const token = await session(), other = await session();
+  const value = await (await post("windows-iso", token, {})).json();
+  assert.match(value.stepTicket, /^[0-9a-f]{32}$/);
+  assert.deepEqual(Object.keys(value).sort(), ["iso", "model", "stepTicket"]);
+  assert.notEqual(value.stepTicket, nativeKey);
+  const action = "windows-iso-step", body = {ticket: value.stepTicket};
+  assert.equal((await post(action, other, body)).status, 409);
+  assert.equal((await post(action, token, body, {Origin: "https://example.org"})).status, 403);
+  assert.equal((await post(action, token, {...body, iso: 800})).status, 400);
+  assert.deepEqual(called, []);
+  const res = await post(action, token, body);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), {model: "ILCE-6400", iso: 500});
+  assert.equal((await post(action, token, body)).status, 409);
+  assert.deepEqual(called, [nativeKey]);
+  assert.deepEqual(writes, []);
+});
+
+test("Nur feste ISO 400 mit gültigem Schlüssel qualifiziert, erneutes Lesen und Zeitablauf sperren", async t => {
+  let reading = qualified;
+  let count = 0;
+  const {session, post} = await setup(t, async () => reading, async () => { count++; });
+  const token = await session(), other = await session();
+  async function readTicket() {
+    return (await (await post("windows-iso", token, {})).json()).stepTicket;
+  }
+  const previous = await readTicket();
+  await post("read", other, {});
+  assert.equal((await post("windows-iso-step", token, {ticket: previous})).status, 409);
+  for (reading of [{...qualified, iso: 500}, {...qualified, mode: "mfnr"}, {...qualified, stepKey: "invalid"},
+    {model: "ILCE-6400", iso: null, rawIso: "0xA1000001"}]) {
+    assert.equal(await readTicket(), undefined);
+  }
+  reading = qualified;
+  const ticket = await readTicket(), now = Date.now();
+  t.mock.method(Date, "now", () => now + 120_001);
+  assert.equal((await post("windows-iso-step", token, {ticket})).status, 409);
+  assert.equal(count, 0);
+});
+
+test("Unbestätigtes Ergebnis verbraucht den Windows-Schritt und sperrt parallel laufende Aufträge", async t => {
+  let started, finish;
+  const running = new Promise(resolve => { started = resolve; });
+  const {session, post} = await setup(t, async () => qualified, async () => {
+    started();
+    return new Promise(resolve => { finish = resolve; });
+  });
+  const token = await session();
+  const {stepTicket: ticket} = await (await post("windows-iso", token, {})).json();
+  const pending = post("windows-iso-step", token, {ticket});
+  await running;
+  try {
+    assert.equal((await post("windows-iso", token, {})).status, 409);
+    assert.equal((await post("windows-iso-step", token, {ticket})).status, 409);
+  } finally {
+    finish({model: "ILCE-6400", iso: 400});
+  }
+  assert.equal((await pending).status, 502);
+  assert.equal((await post("windows-iso-step", token, {ticket})).status, 409);
 });
