@@ -1,6 +1,6 @@
 # Sony α6400 unter Windows per USB testen
 
-Mit v10 bestätigten die lokale App und das Kameradisplay den ISO-Schritt von 400 auf 500. In v11 stehen als Nächstes zwei einzelne Gerätetests aus. Beginne mit der Blende. Die Belichtungszeit lässt sich anschließend in einem eigenen Versuch prüfen. Für beide bleibt das USB-Kabel dem Treiber von **Windows 11 x64** zugeordnet. Du brauchst die vollständig entpackte App, Node.js ab Version 22 für Windows und den 64-Bit-Compiler von .NET Framework 4.x. Die Versuche laufen ohne WSL, Ubuntu und gphoto2.
+Mit v10 bestätigten die lokale App und das Kameradisplay den ISO-Schritt von 400 auf 500. Mit v11 bestätigten Rücklesung und Kameradisplay den Blendenschritt von f/8 auf f/9. Als Nächstes folgt der separate Test der Belichtungszeit von 1/125 s auf 1/160 s. Bei beiden Versuchen bleibt das USB-Kabel dem Treiber von **Windows 11 x64** zugeordnet. Du brauchst die vollständig entpackte App, Node.js ab Version 22 für Windows und den 64-Bit-Compiler von .NET Framework 4.x. Die Versuche laufen ohne WSL, Ubuntu und gphoto2.
 
 ## Vorbereiten
 
