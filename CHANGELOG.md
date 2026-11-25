@@ -2,6 +2,10 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## Einzeltests für Blende und Belichtungszeit unter Windows (v11)
+
+- Unter **Windows-Test** lässt sich jetzt auch die Blende oder die Belichtungszeit der α6400 lesen. Im Fotomodus M gibt es je Feld einen einzelnen relativen Schreibschritt. Für die Blende wird ausgehend von f/8 die Rücklesung f/9 erwartet, für die Zeit ausgehend von 1/125 s die Rücklesung 1/160 s. Beide Displayvergleiche stehen aus. [Anleitung für die Versuche](docs/WINDOWS-USB.md#zuerst-die-blende-testen)
+
 ## Windows-Rücklesung nach ISO-Änderung (v10)
 
 - Im Gerätetest mit v9 wechselte das Display der α6400 nach dem Windows-Schreibbefehl von ISO 400 auf ISO 500. Die Abfragen in der Schreibsitzung lieferten noch ISO 400. Eine separat gestartete Windows-Lesung bestätigte anschließend ISO 500. Bei diesem Ergebnis liest v10 nach kurzer Pause in einer neuen Sitzung derselben Kamera nach. Beim Gerätetest mit v10 folgte auf den Schreibklick die automatische Bestätigung von ISO 500. Das Kameradisplay zeigte denselben Wert. [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)

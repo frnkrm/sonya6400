@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {access} = require("node:fs/promises");
 const path = require("node:path");
-const {readWindowsIso, stepWindowsIso} = require("../local/windows/iso.js");
+const {readWindowsIso, stepWindowsIso, readWindowsExposure, stepWindowsExposure} = require("../local/windows/iso.js");
 
 test("WPD-Leser kompiliert lokale Quellen und akzeptiert nur gültige Messwerte", async () => {
   const cases = [
@@ -77,4 +77,35 @@ test("Windows-Einzelschritt bindet Gerätekennung und bestätigt ausschließlich
     await assert.rejects(invoke(false, invalid), {code: "readback"});
   for (const mismatch of ["0x00000190", "0x010001F4", "0x000001F4 " + key])
     await assert.rejects(invoke(true, mismatch), {code: "readback"});
+});
+
+test("Windows-Blende und Belichtungszeit prüfen Auftrag, Ausgangswert und tatsächliche Rücklesung", async () => {
+  const key = "ab".repeat(32), model = "ILCE-6400";
+  async function invoke(field, output, step = false) {
+    const options = {platform: "win32", exec: async (file, args) => {
+      if (file.endsWith("csc.exe")) return {};
+      assert.deepEqual(args, step ? ["--step-" + field, key] : ["--read-" + field]);
+      return {stdout: output};
+    }};
+    return step ? stepWindowsExposure(field, key, options) : readWindowsExposure(field, options);
+  }
+  for (const [field, initial, target] of [
+    ["aperture", "0x00000320", "0x00000384"], ["shutter", "0x0001007D", "0x000100A0"],
+    ["shutter", "0x000200FA", "0x00020140"]
+  ]) {
+    assert.deepEqual(await invoke(field, initial + " " + key), {model, field, value: Number(initial), stepKey: key});
+    assert.deepEqual(await invoke(field, target, true), {model, field, value: Number(target)});
+    assert.deepEqual(await invoke(field, initial + " !access"), {model, field, value: Number(initial), stepBlock: "access"});
+    assert.deepEqual(await invoke(field, "unavailable"), {model, field, value: null});
+    for (const text of [initial, target + " " + key, target + " !mode", "unavailable"])
+      await assert.rejects(invoke(field, text, true), {code: "readback"});
+    for (const text of [target + " " + key, initial + " !unknown", "unavailable " + key, "0xBAD"])
+      await assert.rejects(invoke(field, text), {code: "readback"});
+  }
+  assert.equal((await invoke("shutter", "0x00000000 !value")).value, 0);
+  assert.equal((await invoke("shutter", "0x00010000 !value")).value, null);
+  assert.equal((await invoke("aperture", "0x00000000 !value")).value, null);
+  await assert.rejects(invoke("aperture", "0x00010000"), {code: "readback"});
+  await assert.rejects(readWindowsExposure("focus"), {code: "unsupported"});
+  await assert.rejects(stepWindowsExposure("shutter", ""), {code: "stale"});
 });

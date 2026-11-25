@@ -23,6 +23,7 @@ V5 = "3449a1f2819b8b1b97279861746efd06050038bf"
 V6 = "5dc338e8f7a0cafb90ef61425ff5d0590369dece"
 V7 = "ca5aac4c0656b24458b711f2613e612b7e9165e3"
 V8 = "fa280c7b26e106c0f5b77591ac4a32f694f13316"
+V10 = "3d89c7285e766d092539a01ed93ab20ba4ddf41a"
 
 
 class Deploy(SimpleHTTPRequestHandler):
@@ -214,6 +215,31 @@ class OfflineAndUpdate(unittest.TestCase):
         self.tab.locator("#transfer-windows").click()
         expect(self.tab.locator("#transfer-status")).to_contain_text("M und feste ISO 400")
         expect(self.tab.locator("#transfer-windows-step")).to_be_visible()
+        expect(self.tab.locator("#transfer-windows-step")).to_be_disabled()
+
+    def test_v10_client_updates_to_windows_exposure_selector(self):
+        self.http.old_files = {
+            name: subprocess.check_output(["git", "show", f"{V10}:{name}"], cwd=ROOT)
+            for name in ("index.html", "sw.js", "transfer-ui.js")
+        }
+        self.http.legacy = True
+        self.open_app()
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", "v10")
+        self.assertEqual(self.tab.locator("#transfer-test").count(), 0)
+        self.http.legacy = False
+        self.tab.evaluate("navigator.serviceWorker.ready.then(reg => reg.update()).then(() => true)")
+        expect(self.tab.locator("meta[name=app-release]")).to_have_attribute("content", RELEASE)
+        self.tab.route("**/api/session", lambda route: route.fulfill(
+            json={"token": "fixture", "windowsIso": True, "windowsExposure": True}
+        ))
+        self.tab.route("**/api/windows-aperture", lambda route: route.fulfill(
+            json={"model": "ILCE-6400", "field": "aperture", "value": 800, "stepBlock": "access"}
+        ))
+        self.tab.locator("#transfer-panel > summary").click()
+        self.tab.locator("#transfer-source").select_option("usb")
+        self.tab.get_by_label("Windows-Test").select_option("aperture")
+        self.tab.get_by_role("button", name="Blende über Windows lesen").click()
+        expect(self.tab.locator("#transfer-status")).to_contain_text("Blende f/8")
         expect(self.tab.locator("#transfer-windows-step")).to_be_disabled()
 
     def test_failed_update_and_upgrade_of_existing_tab_and_installed_app(self):

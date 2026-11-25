@@ -165,6 +165,122 @@ internal static class SonyIsoTests
         catch (IOException) { Check(lost.Commands.SequenceEqual(preview.Concat(new[] {"step"})), "lost acknowledgement"); }
     }
 
+    private static byte[] ExposureField(SonyIso.Field field, uint value, byte form = 0,
+        uint[] options = null, byte access = 0, byte enabled = 1)
+    {
+        // Native Sony units. Aperture is UINT16 hundredths; shutter is
+        // UINT32 with numerator above denominator.
+        bool aperture = field == SonyIso.Field.Aperture;
+        using (var bytes = new MemoryStream())
+        using (var writer = new BinaryWriter(bytes))
+        {
+            Action<uint> number = delegate(uint n)
+            {
+                if (aperture) writer.Write(checked((ushort)n)); else writer.Write(n);
+            };
+            writer.Write((ushort)(aperture ? 0x5007 : 0xD20D));
+            writer.Write((ushort)(aperture ? 4 : 6));
+            writer.Write(access);
+            writer.Write(enabled);
+            number(0);
+            number(value);
+            writer.Write(form);
+            if (form == 2) writer.Write((ushort)options.Length);
+            if (options != null) foreach (uint n in options) number(n);
+            return bytes.ToArray();
+        }
+    }
+
+    private static void ExposureStepTests()
+    {
+        byte[] manual = Hex("0e 50 04 00 00 02 02 00 01 00 00");
+        byte[] otherMode = Hex("0e 50 04 00 00 02 02 00 03 00 00");
+        foreach (var field in new[] {SonyIso.Field.Aperture, SonyIso.Field.Shutter})
+        {
+            bool aperture = field == SonyIso.Field.Aperture;
+            uint start = aperture ? 800u : 0x0001007Du;
+            uint target = aperture ? 900u : 0x000100A0u;
+            uint inside = aperture ? 850u : 0x0001008Cu;
+            uint other = aperture ? 1100u : 0x000100FAu;
+            uint wide = aperture ? ushort.MaxValue : uint.MaxValue;
+            var plain = ExposureField(field, start);
+            var range = ExposureField(field, start, 1, new[] {0u, wide, 1u});
+            var targetRecord = ExposureField(field, target);
+            Check(SonyIso.Preview(new Session(All(plain, manual)).Receive).GetValue(field) == start,
+                "read raw exposure even if ISO is absent");
+            foreach (var allow in new[] {plain, range, ExposureField(field, start, 2, new[] {start, target, other}),
+                ExposureField(field, start, 2, new[] {other, target, start})})
+            {
+                var before = All(allow, manual);
+                var eligible = SonyIso.Preview(new Session(before).Receive);
+                Check(eligible.GetStepBlock(field) == null, "valid enabled manual stop");
+                var session = new Session(before, All(targetRecord, manual));
+                Check(SonyIso.Step(session.Receive, session.StepUp, field) == target
+                    && session.Commands.Count(c => c == "step") == 1, "relative step with exact readback");
+            }
+            foreach (var invalid in new[] {
+                ExposureField(field, start, 2, new uint[0]),
+                ExposureField(field, start, 2, new[] {start, other}),
+                ExposureField(field, start, 2, new[] {start, inside, target}),
+                ExposureField(field, start, 2, new[] {start, target, start}),
+                ExposureField(field, start, 2, new[] {start, target, inside}),
+                ExposureField(field, start, 1, new[] {0u, wide, 2u}),
+                ExposureField(field, start, 1, new[] {start, start, 1u})
+            }) {
+                var session = new Session(All(invalid, manual));
+                Check(SonyIso.Preview(session.Receive).GetStepBlock(field) == "choices", "respect reported limits");
+            }
+            var noAccess = SonyIso.Preview(new Session(All(ExposureField(field, start, enabled: 2), manual)).Receive);
+            Check(noAccess.GetStepBlock(field) == "access", "display-only property");
+            Check(SonyIso.Preview(new Session(All(plain, otherMode)).Receive).GetStepBlock(field) == "mode", "M required");
+            foreach (var blocked in new[] {
+                All(manual), All(plain, plain, manual), All(plain, otherMode), All(plain),
+                All(targetRecord, manual), All(ExposureField(field, start, access: 0x81), manual)
+            }) {
+                var session = new Session(blocked);
+                try { SonyIso.Step(session.Receive, session.StepUp, field); throw new Exception("Unexpected write"); }
+                catch (InvalidOperationException) { Check(!session.Commands.Contains("step"), "blocked before write"); }
+            }
+            var wrong = new Session(All(plain, manual), All(ExposureField(field, other), manual));
+            try { SonyIso.Step(wrong.Receive, wrong.StepUp, field); throw new Exception("Unexpected confirmation"); }
+            catch (InvalidOperationException) { Check(wrong.Commands.Count(c => c == "step") == 1, "no second step"); }
+            foreach (var mismatch in new[] {All(targetRecord, otherMode), All(manual), All(ExposureField(field, other), manual)})
+            {
+                var session = new Session(mismatch);
+                try { SonyIso.ConfirmInFreshSession(session.Receive, field); throw new Exception("Unexpected fresh confirmation"); }
+                catch (InvalidOperationException) { Check(!session.Commands.Contains("step"), "fresh check is read only"); }
+            }
+            var fresh = new Session(All(plain, manual), All(targetRecord, manual));
+            Check(SonyIso.ConfirmInFreshSession(fresh.Receive, field) == target, "fresh session delayed confirmation");
+        }
+        var apertureField = SonyIso.Field.Aperture;
+        var changed = new Session(All(manual, ExposureField(apertureField, 800)), All(manual, ExposureField(apertureField, 950)));
+        try { SonyIso.Step(changed.Receive, changed.StepUp, apertureField); throw new Exception("Unexpected f/9.5 confirmation"); }
+        catch (InvalidOperationException error) {
+            Check(error.Message.Contains("f/9,5") && error.Message.Contains("Erwartet war f/9.")
+                && changed.Commands.Count(c => c == "step") == 1, "report actual aperture after one step");
+        }
+        const SonyIso.Field shutter = SonyIso.Field.Shutter;
+        // 2/250 and 2/320 are the same times as 1/125 and 1/160.
+        var equivalent = new Session(All(manual, ExposureField(shutter, 0x000200FA, 2,
+            new uint[] { 0, 0x000200FA, 0x00020140 })), All(manual, ExposureField(shutter, 0x00020140)));
+        Check(SonyIso.Step(equivalent.Receive, equivalent.StepUp, shutter) == 0x00020140,
+            "equivalent fractions confirm the actual raw value");
+        foreach (var unavailable in new uint[] {0, 0x00010000, 0x0000007D})
+        {
+            var state = SonyIso.Preview(new Session(All(manual, ExposureField(shutter, unavailable))).Receive);
+            Check(state.GetValue(shutter) == unavailable && state.GetStepBlock(shutter) == "value",
+                "bulb or invalid fraction remains read only");
+        }
+        var missing = SonyIso.Preview(new Session(All(manual, Iso(400))).Receive);
+        Check(!missing.GetValue(shutter).HasValue && missing.GetStepBlock(shutter) == "value", "missing control is unavailable");
+        // A malformed optional type with a valid PTP layout must not prevent the established ISO read.
+        byte[] otherType = Hex("07 50 06 00 00 01 00 00 00 00 20 03 00 00 00");
+        Check(Read(All(Iso(400), otherType, manual)) == 400, "independent ISO read");
+        var wrongType = SonyIso.Preview(new Session(All(otherType, manual)).Receive);
+        Check(!wrongType.GetValue(SonyIso.Field.Aperture).HasValue, "aperture requires UINT16");
+    }
+
     private static uint Read(byte[] properties)
     {
         return SonyIso.Read(delegate(ushort opcode, uint[] args)
@@ -293,6 +409,7 @@ internal static class SonyIsoTests
             if (Wpd.IsSonyUsbId(id)) throw new Exception("Unexpected Sony PnP ID");
         WpdSelection();
         StepTests();
+        ExposureStepTests();
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
             Console.WriteLine("Windows Configuration Manager: {0} active WPD interfaces.", Wpd.PnpInterfaces(false).Count);
         Console.WriteLine("WPD: 10 device ID checks passed.");

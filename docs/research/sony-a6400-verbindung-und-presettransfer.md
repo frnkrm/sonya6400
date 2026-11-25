@@ -97,7 +97,7 @@ Laut README lassen sich Zeit, Blende, ISO und Belichtungskorrektur ändern. Das 
 
 Das ist ein konkreter Kandidat für einen Machbarkeitstest. Es ist keine bereits geprüfte Integration der auf Netlify veröffentlichten Website. Der fremde Code wurde hier nicht vollständig geprüft oder ausgeführt.
 
-Quelle: [SimpleAlphaDroid](https://github.com/qkhanhpro/simplealphadroid).
+Für die nativen Windows-Einzeltests ab v11 ist der veröffentlichte Protokollbefund zur α6400 relevant. Die Referenz beschreibt für `0x9207` den relativen Schritt +1 als `01 00` bei Blende (`0x5007`, größere Blendenzahl) und Zeit (`0xD20D`, kürzere Zeit). Das bestätigt die Richtung des Befehls. Den erreichten Wert für die hier angeschlossene Kamera und das Objektiv liefert der jeweilige Versuch. [Protokoll bei Git-Stand 197c206](https://github.com/qkhanhpro/simplealphadroid/blob/197c20638d414e429c4a5826b94134da91050a5a/docs/PROTOCOL.md#exposure-and-locks) · [Implementierung des relativen Schritts](https://github.com/qkhanhpro/simplealphadroid/blob/197c20638d414e429c4a5826b94134da91050a5a/app/src/main/java/com/simplealphadroid/SonyCam.java#L769-L777)
 
 ### gphoto2 / libgphoto2 — Grundlage für eine lokale USB-Anbindung
 

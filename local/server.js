@@ -14,7 +14,7 @@ const HOST = "127.0.0.1";
 const ROOT = path.resolve(__dirname, "..");
 const MAX_BYTES = 32 * 1024;
 const SESSION_MS = 30 * 60 * 1000;
-const ISO_STEP_MS = 2 * 60 * 1000;
+const WINDOWS_STEP_MS = 2 * 60 * 1000;
 const MIME = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8", ".png": "image/png",
@@ -54,9 +54,33 @@ async function readBody(req) {
   }
 }
 
-const windows = process.platform === "win32" ? require("./windows/iso.js") : {};
+const native = require("./windows/iso.js");
+const windows = process.platform === "win32" ? native : {};
 
-function createApp(adapter = new GPhotoAdapter(), windowsIso = windows.readWindowsIso, windowsStep = windows.stepWindowsIso) {
+function windowsReading(field, result) {
+  if (result?.model !== "ILCE-6400") fail("readback", "Windows hat keine α6400 gemeldet.", 502);
+  const {model, iso, mode, rawIso, value} = result;
+  if (field !== "iso") {
+    const max = field === "aperture" ? 0xffff : 0xffffffff;
+    if (result.field !== field || (value !== null && !(Number.isInteger(value) && value >= 0 && value <= max)))
+      fail("readback", "Windows hat keine gültigen Daten für diese Einstellung geliefert.", 502);
+    return {model, field, value};
+  }
+  const readable = iso === "auto" || (Number.isInteger(iso) && iso >= 25 && iso <= 409600);
+  const raw = typeof rawIso === "string" && /^0x[0-9A-F]{8}$/u.test(rawIso);
+  const known = readable && rawIso === undefined && [undefined, "mfnr", "mfnrPlus"].includes(mode);
+  const unknown = raw && (iso === null && mode === undefined || readable && mode === "unknown");
+  if (!known && !unknown) fail("readback", "Windows hat keine gültigen ISO-Daten der α6400 zurückgegeben.", 502);
+  return {model, iso, mode, rawIso};
+}
+
+function matchesStep(field, reading, afterWrite) {
+  if (field !== "iso") return native.matchesExposureStep(field, reading.value, afterWrite);
+  return reading.iso === (afterWrite ? 500 : 400) && reading.mode === undefined && reading.rawIso === undefined;
+}
+
+function createApp(adapter = new GPhotoAdapter(), windowsIso = windows.readWindowsIso, windowsStep = windows.stepWindowsIso,
+  readExposure = windows.readWindowsExposure, stepExposure = windows.stepWindowsExposure) {
   const sessions = new Map();
   let busy = false;
   function clearPreviews() {
@@ -95,10 +119,11 @@ function createApp(adapter = new GPhotoAdapter(), windowsIso = windows.readWindo
         if (sessions.size >= 64) fail("busy", "Zu viele lokale Sitzungen. Anwendung neu starten.", 429);
         const token = randomBytes(32).toString("hex");
         sessions.set(token, {expires: now + SESSION_MS, snapshot: null, step: null});
-        json(res, 200, {token, windowsIso: typeof windowsIso === "function"});
+        json(res, 200, {token, windowsIso: typeof windowsIso === "function", windowsExposure: typeof readExposure === "function"});
         return;
       }
-      if (!["/api/read", "/api/apply", "/api/windows-iso", "/api/windows-iso-step"].includes(route)) fail("missing", "Unbekannte Anfrage.", 404);
+      const nativeRoute = /^\/api\/windows-(iso|aperture|shutter)(-step)?$/u.exec(route);
+      if (!nativeRoute && route !== "/api/read" && route !== "/api/apply") fail("missing", "Unbekannte Anfrage.", 404);
       if (req.method !== "POST") fail("method", "Die Kamera-Aktion erfordert POST.", 405);
       if (req.headers.origin !== origin) fail("origin", "Lokalen Browserursprung prüfen.", 403);
       const session = sessions.get(req.headers["x-session"]);
@@ -109,37 +134,36 @@ function createApp(adapter = new GPhotoAdapter(), windowsIso = windows.readWindo
       busy = true;
       try {
         session.expires = Date.now() + SESSION_MS;
-        if (route === "/api/windows-iso") {
-          if (Object.keys(body).length) fail("format", "Die native ISO-Abfrage benötigt keine Parameter.", 400);
-          if (!windowsIso) fail("platform", "Das direkte ISO-Lesen benötigt die lokale Anwendung unter Windows.", 409);
-          clearPreviews();
-          const {model, iso, mode, rawIso, stepKey, stepBlock} = await windowsIso();
-          if (model !== "ILCE-6400") fail("readback", "Windows hat keine α6400 gemeldet.", 502);
-          const readable = iso === "auto" || (Number.isInteger(iso) && iso >= 25 && iso <= 409600);
-          const raw = typeof rawIso === "string" && /^0x[0-9A-F]{8}$/u.test(rawIso);
-          const known = readable && rawIso === undefined && [undefined, "mfnr", "mfnrPlus"].includes(mode);
-          const unknown = raw && (iso === null && mode === undefined || readable && mode === "unknown");
-          if (!known && !unknown) fail("readback", "Windows hat keine gültigen ISO-Daten der α6400 zurückgegeben.", 502);
-          const reading = {model, iso, mode, rawIso};
-          if (["mode", "access", "choices"].includes(stepBlock)) reading.stepBlock = stepBlock;
-          if (typeof windowsStep === "function" && stepBlock === undefined && iso === 400 && mode === undefined && rawIso === undefined &&
-              typeof stepKey === "string" && /^[0-9a-f]{64}$/u.test(stepKey)) {
-            const ticket = randomBytes(16).toString("hex");
-            session.step = {ticket, key: stepKey, expires: Date.now() + ISO_STEP_MS};
-            reading.stepTicket = ticket;
+        if (nativeRoute) {
+          const [, field, stepAction] = nativeRoute;
+          const reader = field === "iso" ? windowsIso : readExposure;
+          const writer = field === "iso" ? windowsStep : stepExposure;
+          if (!reader) fail("platform", "Diese Kameraabfrage benötigt die lokale Anwendung unter Windows.", 409);
+          if (stepAction) {
+            if (Object.keys(body).length !== 1 || typeof body.ticket !== "string")
+              fail("format", "Der Einzelschritt erwartet ausschließlich das Leseticket.", 400);
+            const step = session.step;
+            if (!writer || !step || step.field !== field || step.expires <= Date.now() || step.ticket !== body.ticket)
+              fail("stale", "Freigabe fehlt oder ist abgelaufen. Diese Einstellung über Windows erneut lesen.", 409);
+            clearPreviews();
+            const result = field === "iso" ? await writer(step.key) : await writer(field, step.key);
+            const confirmed = windowsReading(field, result);
+            if (result.stepBlock !== undefined || result.stepKey !== undefined || !matchesStep(field, confirmed, true))
+              fail("readback", "Der Zielwert wurde nicht bestätigt.", 502);
+            json(res, 200, confirmed);
+          } else {
+            if (Object.keys(body).length) fail("format", "Die native Leseabfrage benötigt keine Parameter.", 400);
+            clearPreviews();
+            const result = field === "iso" ? await reader() : await reader(field);
+            const reading = windowsReading(field, result);
+            if (["mode", "access", "choices", "value"].includes(result.stepBlock)) reading.stepBlock = result.stepBlock;
+            if (writer && result.stepBlock === undefined && matchesStep(field, reading, false) && native.validDeviceKey(result.stepKey)) {
+              const ticket = randomBytes(16).toString("hex");
+              session.step = {ticket, field, key: result.stepKey, expires: Date.now() + WINDOWS_STEP_MS};
+              reading.stepTicket = ticket;
+            }
+            json(res, 200, reading);
           }
-          json(res, 200, reading);
-        } else if (route === "/api/windows-iso-step") {
-          if (Object.keys(body).length !== 1 || typeof body.ticket !== "string")
-            fail("format", "Der ISO-Einzelschritt erwartet ausschließlich das Leseticket.", 400);
-          const step = session.step;
-          if (!windowsStep || !step || step.expires <= Date.now() || step.ticket !== body.ticket)
-            fail("stale", "Freigabe fehlt oder ist abgelaufen. ISO über Windows erneut lesen.", 409);
-          clearPreviews();
-          const result = await windowsStep(step.key);
-          if (result?.model !== "ILCE-6400" || result.iso !== 500 || result.mode !== undefined || result.rawIso !== undefined)
-            fail("readback", "Die Rücklesung hat feste ISO 500 nicht bestätigt.", 502);
-          json(res, 200, {model: result.model, iso: result.iso});
         } else if (route === "/api/read") {
           clearPreviews();
           if (Object.keys(body).length) fail("format", "Die Leseanfrage benötigt keine Parameter.", 400);

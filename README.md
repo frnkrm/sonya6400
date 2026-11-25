@@ -15,11 +15,11 @@ Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Landschaft, Porträt,
 - Teilbare Einstellungslinks und eine als PNG speicherbare Karte.
 - Installation als Web-App und Offline-Nutzung nach erfolgreichem Laden der benötigten Dateien.
 
-## ISO unter Windows lesen und testen
+## Die α6400 unter Windows per USB testen
 
-Lade unter Windows 11 x64 das aktuelle Projekt-ZIP herunter, entpacke es in einen neuen Ordner und starte **Start-Kamera.cmd**. Lass die Kamera Windows zugeordnet und schließe Sony Imaging Edge Remote. Wähle in der lokalen App **Kameraverbindung & Profil → USB am Computer → ISO über Windows lesen**. Beim Versuch mit v8 zeigten Kompass und Kameradisplay übereinstimmend feste **ISO 400**. [Windows-Anleitung mit ZIP-Download](docs/WINDOWS-USB.md)
+Lade unter Windows 11 x64 das aktuelle Projekt-ZIP herunter, entpacke es in einen neuen Ordner und starte **Start-Kamera.cmd**. Schließe Sony Imaging Edge Remote und lass Windows die Kamera verwalten. Öffne in der lokalen App **Kameraverbindung & Profil → USB am Computer**. Unter **Windows-Test** lässt sich je Versuch eine Einstellung lesen und im Fotomodus M um einen Schritt ändern. [Windows-Anleitung mit ZIP-Download](docs/WINDOWS-USB.md)
 
-Die lokale Windows-App unterstützt einen einzelnen ISO-Schritt im Fotomodus M. Wenn die Kamera feste ISO 400 und die nächste freigegebene Stufe 500 meldet, wird **ISO von 400 auf 500 ändern** nach dem Lesen aktiv. Im Gerätetest mit v10 bestätigte der Kompass ISO 500 automatisch nach dem Schreibklick. Die α6400 zeigte ebenfalls ISO 500. [Anleitung für den einmaligen Hardwaretest](docs/WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
+Beim Gerätetest mit v10 bestätigten die automatische Rücklesung und die α6400 übereinstimmend **ISO 500** nach dem Schritt von ISO 400. Für v11 stehen die Displayvergleiche für **Blende** (f/8 → f/9) und **Belichtungszeit** (1/125 s → 1/160 s) noch aus. [Zuerst die Blende testen](docs/WINDOWS-USB.md#zuerst-die-blende-testen) · [Belichtungszeit separat testen](docs/WINDOWS-USB.md#belichtungszeit-separat-testen)
 
 ## Eine Empfehlung an die Kamera übertragen
 

@@ -6,7 +6,7 @@ const {once} = require("node:events");
 const {createApp} = require("../local/server.js");
 const {SimulationAdapter} = require("../transfer-engine.js");
 
-async function setup(t, windowsIso = null, windowsStep = null) {
+async function setup(t, windowsIso = null, windowsStep = null, readExposure = null, stepExposure = null) {
   const adapter = new SimulationAdapter("M");
   const writes = [];
   const write = adapter.write.bind(adapter);
@@ -14,7 +14,7 @@ async function setup(t, windowsIso = null, windowsStep = null) {
     writes.push(args[0]);
     return write(...args);
   };
-  const app = createApp(adapter, windowsIso, windowsStep);
+  const app = createApp(adapter, windowsIso, windowsStep, readExposure, stepExposure);
   app.listen(0, "127.0.0.1");
   await once(app, "listening");
   t.after(() => new Promise(resolve => {
@@ -237,4 +237,61 @@ test("Unbestätigtes Ergebnis verbraucht den Windows-Schritt und sperrt parallel
   }
   assert.equal((await pending).status, 502);
   assert.equal((await post("windows-iso-step", token, {ticket})).status, 409);
+});
+
+test("Die Windows-Freigabe gilt genau für die gelesene Einstellung und das zugeordnete Gerät", async t => {
+  const called = [];
+  const model = "ILCE-6400";
+  const key = nativeKey;
+  const readings = {
+    aperture: {model, field: "aperture", value: 800, stepKey: key},
+    shutter: {model, field: "shutter", value: (2 << 16) + 250, stepKey: key}
+  };
+  const {session, post, origin} = await setup(t, () => qualified, () => assert.fail("ISO"), field => readings[field],
+    (field, deviceKey) => {
+      called.push([field, deviceKey]);
+      return {model, field, value: field === "aperture" ? 900 : (2 << 16) + 320};
+    });
+  const token = await session(), other = await session();
+  assert.equal((await (await fetch(origin + "/api/session")).json()).windowsExposure, true);
+  for (const field of ["aperture", "shutter"]) {
+    const path = "windows-" + field;
+    const response = await (await post(path, token, {})).json();
+    assert.equal(response.value, readings[field].value);
+    assert.equal(response.stepKey, undefined);
+    assert.match(response.stepTicket, /^[a-f0-9]{32}$/u);
+    const body = {ticket: response.stepTicket};
+    const wrongField = field === "aperture" ? "shutter" : "aperture";
+    assert.equal((await post("windows-" + wrongField + "-step", token, body)).status, 409);
+    assert.equal((await post("windows-iso-step", token, body)).status, 409);
+    assert.equal((await post(path + "-step", other, body)).status, 409);
+    assert.equal((await post(path + "-step", token, {...body, target: 900})).status, 400);
+    const success = await post(path + "-step", token, body);
+    assert.equal(success.status, 200);
+    assert.deepEqual(await success.json(), {model, field, value: field === "aperture" ? 900 : (2 << 16) + 320});
+    assert.equal((await post(path + "-step", token, body)).status, 409);
+  }
+  assert.deepEqual(called, [["aperture", key], ["shutter", key]]);
+});
+
+test("Abweichende Rücklesungen, neue Vorschauen und gesperrte Felder bestätigen keinen Windows-Schritt", async t => {
+  const model = "ILCE-6400", field = "aperture";
+  const preview = {model, field, value: 800, stepKey: nativeKey};
+  let reading = preview, result;
+  const {session, post} = await setup(t, () => qualified, null, () => reading, () => result);
+  const token = await session();
+  const read = async () => (await post("windows-aperture", token, {})).json();
+  const step = ticket => post("windows-aperture-step", token, {ticket});
+  const first = await read();
+  await post("windows-iso", token, {});
+  assert.equal((await step(first.stepTicket)).status, 409);
+  for (reading of [{...preview, value: 900}, {...preview, stepBlock: "access"},
+    {...preview, value: null}, {...preview, stepKey: "bad"}]) assert.equal((await read()).stepTicket, undefined);
+  reading = preview;
+  for (result of [{model, field, value: 800}, {model, field: "shutter", value: 900},
+    {model, field, value: 900, stepBlock: "mode"}, {model: "other", field, value: 900}]) {
+    const {stepTicket} = await read();
+    assert.equal((await step(stepTicket)).status, 502);
+    assert.equal((await step(stepTicket)).status, 409);
+  }
 });

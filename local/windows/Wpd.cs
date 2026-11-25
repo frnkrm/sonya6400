@@ -1,6 +1,6 @@
 // Windows SDK: PortableDeviceApi.h, PortableDeviceTypes.h, PortableDevice.h,
 // WpdMtpExtensions.h (microsoft/win32metadata, generation/WinSDK/RecompiledIdlHeaders/um).
-// WPD owns the USB/PTP session. The only write operation is one upward ISO step.
+// WPD owns the USB/PTP session. Writes are limited to one upward step in an allowlisted exposure field.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -387,13 +387,21 @@ internal sealed class Wpd : IDisposable
         finally { Release(args); }
     }
 
-    // ILCE-6400 SDIO v200: ControlDevice on ISO with a four-byte signed step.
-    // https://github.com/qkhanhpro/simplealphadroid/blob/197c206/docs/PROTOCOL.md
-    internal void StepIsoUp()
+    // ILCE-6400 capture: +1 means higher ISO, higher f-number or faster shutter.
+    // https://github.com/qkhanhpro/simplealphadroid/blob/197c206/app/src/main/java/com/simplealphadroid/SonyCam.java#L769-L779
+    internal void StepUp(SonyIso.Field field)
     {
         if (device == null) throw new ObjectDisposedException("Wpd");
-        const string operation = "Sony ISO-Schritt (0x9207, 0xD21E)";
-        byte[] step = { 1, 0, 0, 0 };
+        uint property;
+        byte[] step;
+        switch (field)
+        {
+            case SonyIso.Field.Iso: property = 0xD21E; step = new byte[] { 1, 0, 0, 0 }; break;
+            case SonyIso.Field.Aperture: property = 0x5007; step = new byte[] { 1, 0 }; break;
+            case SonyIso.Field.Shutter: property = 0xD20D; step = new byte[] { 1, 0 }; break;
+            default: throw new InvalidOperationException("Unbekannter Belichtungsschritt.");
+        }
+        string operation = "Sony-Belichtungsschritt (0x9207, 0x" + property.ToString("X4") + ")";
         string context = null;
         bool endAttempted = false;
         IValues started = null, written = null;
@@ -402,14 +410,14 @@ internal sealed class Wpd : IDisposable
             started = Command(ExecuteWrite, delegate(IValues request)
             {
                 request.SetUnsignedIntegerValue(ref OperationCode, 0x9207);
-                SetArguments(request, 0xD21E);
+                SetArguments(request, property);
                 request.SetUnsignedLargeIntegerValue(ref TotalSize, (ulong)step.Length);
             });
             started.GetStringValue(ref Context, out context);
             if (String.IsNullOrEmpty(context)) throw new InvalidDataException("WPD lieferte keinen Transferkontext.");
             uint blockSize;
             started.GetUnsignedIntegerValue(ref OptimalSize, out blockSize);
-            if (blockSize < step.Length) throw new InvalidDataException("Der WPD-Schreibpuffer reicht für den ISO-Schritt nicht aus.");
+            if (blockSize < step.Length) throw new InvalidDataException("Der WPD-Schreibpuffer reicht für den Belichtungsschritt nicht aus.");
             written = Command(WriteChunk, delegate(IValues request)
             {
                 request.SetStringValue(ref Context, context);
@@ -418,7 +426,7 @@ internal sealed class Wpd : IDisposable
             });
             uint count;
             written.GetUnsignedIntegerValue(ref BytesWritten, out count);
-            if (count != step.Length) throw new InvalidDataException("WPD bestätigt die vier ISO-Datenbytes nicht vollständig.");
+            if (count != step.Length) throw new InvalidDataException("WPD bestätigt die Datenbytes des Belichtungsschritts nicht vollständig.");
             endAttempted = true;
             End(context);
         }

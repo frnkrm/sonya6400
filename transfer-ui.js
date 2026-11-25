@@ -3,6 +3,21 @@ const TransferUI = (() => {
   "use strict";
 
   const fields = {iso: "ISO", aperture: "Blende", shutter: "Belichtungszeit"};
+  // Die Belichtungszeit ist hier als Kehrwert des Start- bzw. Zielbruchs angegeben.
+  const windowsTests = {
+    iso: {
+      start: 400, end: 500, action: "ISO-Schritt", target: "ISO 500", button: "ISO von 400 auf 500 ändern",
+      setup: "Für den Einzelschritt M und feste ISO 400 wählen. Die Kamera muss ISO 500 als nächste Stufe anbieten."
+    },
+    aperture: {
+      start: 800, end: 900, action: "Blendenschritt", target: "f/9", button: "Blende ab f/8 um eine Stufe schließen",
+      setup: "Im Fotomodus M mit elektronisch steuerbarem Objektiv f/8 einstellen. Der Test schließt um eine Kamerastufe und prüft auf f/9."
+    },
+    shutter: {
+      start: 125, end: 160, action: "Zeitänderung", target: "1/160 s", button: "Belichtungszeit ab 1/125 s um eine Stufe verkürzen",
+      setup: "Im Fotomodus M an der Kamera 1/125 s einstellen. Der Test verkürzt um eine Kamerastufe und prüft auf 1/160 s."
+    }
+  };
   const rowStates = {
     ready: "Übertragbar", already: "Bereits eingestellt", manual: "Manuell",
     verified: "Rücklesung bestätigt", rejected: "Abgewiesen", mismatch: "Rücklesung weicht ab",
@@ -24,6 +39,7 @@ const TransferUI = (() => {
   let token;
   let connecting;
   let windowsIso = false;
+  let windowsExposure = false;
   let stepTicket;
   let expiryTimer;
   let revision = 0;
@@ -75,6 +91,11 @@ const TransferUI = (() => {
             <label id="transfer-mode-label">Simulierter Kameramodus<select id="transfer-mode">
               <option value="A">A · Blendenpriorität</option><option value="M">M · Manuell</option>
             </select></label>
+            <label id="transfer-test-label" hidden>Windows-Test<select id="transfer-test">
+              <option value="iso">ISO</option>
+              <option value="aperture">Blende</option>
+              <option value="shutter">Belichtungszeit</option>
+            </select></label>
           </div>
           <div id="transfer-usb-help" hidden>
             <p>Unter Windows 11 nach der Einrichtung <code>Start-Kamera.cmd</code> starten.
@@ -83,10 +104,7 @@ const TransferUI = (() => {
               <a href="https://github.com/frnkrm/sonya6400/blob/main/docs/DEVELOPMENT.md#lokale-usb-anwendung">Linux-Einrichtung</a></p>
             <p>Auf dem Kameracomputer <code>http://127.0.0.1:8765/</code> öffnen. Für die Profilübertragung das gewünschte Profil laden.</p>
           </div>
-          <p id="transfer-native-help" hidden>Imaging Edge Remote schließen und die Kamera direkt mit Windows verbinden.
-            Für den Einzelschritt Modus M und feste ISO 400 einstellen und „ISO über Windows lesen“ wählen.
-            Gibt die Kamera die nächste Stufe frei, kannst du ISO 500 mit einem eigenen Klick einstellen und zurücklesen.
-            Für das gesamte Profil die USB-Vorschau über gphoto2 verwenden.</p>
+          <p id="transfer-native-help" hidden></p>
           <div class="transfer-actions">
             <button type="button" id="transfer-windows" class="chip" hidden>ISO über Windows lesen</button>
             <button type="button" id="transfer-windows-step" class="chip" hidden disabled>ISO von 400 auf 500 ändern</button>
@@ -124,6 +142,7 @@ const TransferUI = (() => {
         connect().then(controls, controls);
       }
     };
+    el("test").onchange = () => invalidate(fields[el("test").value] + " gewählt. Istwert über Windows lesen.");
     el("read").onclick = () => read();
     el("windows").onclick = () => read(true);
     el("windows-step").onclick = stepWindows;
@@ -164,7 +183,18 @@ const TransferUI = (() => {
     const usb = !isSim();
     el("mode-label").hidden = usb;
     el("usb-help").hidden = !usb;
-    el("windows").hidden = !usb || !local || !windowsIso;
+    const testSelect = el("test");
+    if (!windowsExposure) testSelect.value = "iso";
+    else if (!windowsIso && testSelect.value === "iso") testSelect.value = "aperture";
+    testSelect.options[0].disabled = !windowsIso;
+    const field = testSelect.value;
+    el("test-label").hidden = !usb || !local || !windowsExposure;
+    testSelect.disabled = busy;
+    el("windows").hidden = !usb || !local || !(windowsIso || windowsExposure);
+    el("windows").textContent = fields[field] + " über Windows lesen";
+    el("windows-step").textContent = windowsTests[field].button;
+    el("native-help").textContent = "Imaging Edge Remote schließen und die Kamera direkt mit Windows verbinden. " +
+      windowsTests[field].setup + " Für das gesamte Profil die USB-Vorschau über gphoto2 verwenden.";
     el("windows").disabled = busy || el("windows").hidden;
     el("windows-step").hidden = el("windows").hidden;
     el("windows-step").disabled = busy || el("windows-step").hidden || !stepTicket;
@@ -280,6 +310,7 @@ const TransferUI = (() => {
         if (typeof session.token !== "string" || !session.token) throw new Error("Lokale Sitzung fehlt.");
         token = session.token;
         windowsIso = session.windowsIso === true;
+        windowsExposure = session.windowsExposure === true;
       }).finally(() => { connecting = null; });
     }
     await connecting;
@@ -305,6 +336,66 @@ const TransferUI = (() => {
     throw new Error("Die ISO-Antwort der α6400 ist unvollständig.");
   }
 
+  function shutterParts(raw) {
+    if (!Number.isInteger(raw) || raw <= 0 || raw > 0xffffffff) return null;
+    const numerator = raw >>> 16;
+    const denominator = raw & 0xffff;
+    if (!numerator || !denominator) return null;
+    let a = numerator, b = denominator;
+    while (b) [a, b] = [b, a % b];
+    return [numerator / a, denominator / a];
+  }
+
+  function windowsReading(field, result) {
+    if (field === "iso") return windowsIsoLabel(result);
+    const raw = result.value;
+    if (result.model !== "ILCE-6400" || result.field !== field) throw new Error("Unerwartete Kameraantwort.");
+    if (raw === null) return fields[field] + " nicht gemeldet";
+    if (field === "aperture" && Number.isInteger(raw) && raw > 0 && raw <= 65535) {
+      return "Blende " + value(field, raw / 100);
+    }
+    if (field === "shutter") {
+      if (raw === 0) return "Belichtungszeit BULB";
+      const parts = shutterParts(raw);
+      if (parts) return "Belichtungszeit " + (parts[1] === 1 ? parts[0] : parts.join("/")) + " s";
+    }
+    throw new Error("Die Kamera hat einen ungültigen Wert für " + fields[field] + " gemeldet.");
+  }
+
+  function matchesTest(field, result, target) {
+    if (result.model !== "ILCE-6400") return false;
+    if (field === "iso") return result.iso === target && result.mode === undefined && result.rawIso === undefined;
+    if (result.field !== field) return false;
+    if (field === "aperture") return result.value === target;
+    const parts = shutterParts(result.value);
+    return parts && parts[0] * target === parts[1];
+  }
+
+  function showWindowsReading(field, result) {
+    const status = el("status");
+    status.textContent = "Windows · Sony " + result.model + " · " + windowsReading(field, result) +
+      " · gelesen um " + new Date().toLocaleTimeString("de-DE");
+    const test = windowsTests[field];
+    if (!result.stepBlock && matchesTest(field, result, test.start) &&
+        typeof result.stepTicket === "string" && /^[0-9a-f]{32}$/u.test(result.stepTicket)) {
+      stepTicket = result.stepTicket;
+      expiryTimer = setTimeout(() => {
+        clearStep();
+        status.textContent += " Freigabe abgelaufen. " + fields[field] + " über Windows erneut lesen.";
+        controls();
+      }, 120_000);
+    } else if (result.stepBlock === "mode") {
+      status.textContent += " Die Kamera meldet keinen Fotomodus M. Moduswahlrad auf M stellen und erneut lesen.";
+    } else if (result.stepBlock === "access") {
+      status.textContent += " Im Modus M meldet die Kamera keine Schreibfreigabe für " + fields[field] + ".";
+    } else if (result.stepBlock === "choices") {
+      status.textContent += field === "iso" ? " Die Kamera meldet ISO 500 nicht als eindeutige nächste Stufe nach ISO 400." :
+        " Die Kamera gibt den Einzelschritt für dieses Ziel nicht frei.";
+    } else if (field !== "iso" || result.iso === 400) {
+      status.textContent += " " + test.setup + " Anschließend erneut lesen.";
+    }
+  }
+
   async function read(native = false) {
     if (el(native ? "windows" : "read").disabled || busy) return;
     busy = true;
@@ -320,29 +411,10 @@ const TransferUI = (() => {
         await connect();
         if (revision !== active) return;
         if (native) {
-          const result = await request("/api/windows-iso", {});
+          const field = el("test").value;
+          const result = await request("/api/windows-" + field, {});
           if (revision !== active) return;
-          el("status").textContent = "Windows · Sony " + result.model + " · " + windowsIsoLabel(result) +
-            " · gelesen um " + new Date().toLocaleTimeString("de-DE");
-          if (result.iso === 400) {
-            if (result.mode === undefined && result.rawIso === undefined &&
-                typeof result.stepTicket === "string" && /^[0-9a-f]{32}$/u.test(result.stepTicket)) {
-              stepTicket = result.stepTicket;
-              expiryTimer = setTimeout(() => {
-                clearStep();
-                el("status").textContent += " Freigabe abgelaufen. ISO über Windows erneut lesen.";
-                controls();
-              }, 120_000);
-            } else if (result.stepBlock === "mode") {
-              el("status").textContent += " Die Kamera meldet keinen Fotomodus M. Moduswahlrad auf M stellen und erneut lesen.";
-            } else if (result.stepBlock === "access") {
-              el("status").textContent += " Im Modus M meldet die Kamera keine Schreibfreigabe für ISO.";
-            } else if (result.stepBlock === "choices") {
-              el("status").textContent += " Die Kamera meldet ISO 500 nicht als eindeutige nächste Stufe nach ISO 400.";
-            } else {
-              el("status").textContent += " Für den Einzelschritt M und feste ISO 400 wählen. Die Kamera muss ISO 500 als nächste Stufe anbieten. Anschließend erneut lesen.";
-            }
-          }
+          showWindowsReading(field, result);
           return;
         }
         state = await request("/api/read", {});
@@ -366,17 +438,19 @@ const TransferUI = (() => {
     if (busy || el("windows-step").disabled || !stepTicket) return;
     busy = true;
     const ticket = stepTicket;
-    invalidate("Windows · ISO 500 wird eingestellt und zurückgelesen …");
+    const field = el("test").value;
+    const test = windowsTests[field];
+    invalidate("Windows · " + fields[field] + " wird um eine Stufe geändert und zurückgelesen …");
     const record = {
-      revision, target: "Windows · Sony ILCE-6400 · ISO 400 auf ISO 500",
+      revision, target: "Windows · Sony ILCE-6400 · " + test.button,
       time: new Date().toLocaleTimeString("de-DE"), message: "", result: null
     };
     try {
-      const result = await request("/api/windows-iso-step", {ticket});
-      if (result.model !== "ILCE-6400" || result.iso !== 500) throw new Error("Unerwartete Rücklesung.");
-      record.message = "Windows · Sony ILCE-6400 · ISO 500 bestätigt zurückgelesen.";
+      const result = await request("/api/windows-" + field + "-step", {ticket});
+      if (!matchesTest(field, result, test.end)) throw new Error("Der zurückgelesene Wert entspricht nicht dem Testziel.");
+      record.message = "Windows · Sony ILCE-6400 · " + test.target + " bestätigt zurückgelesen.";
     } catch (error) {
-      record.message = "Windows · ISO-Schritt unbestätigt. " + error.message + " Aktuellen Wert über Windows erneut lesen.";
+      record.message = "Windows · " + test.action + " unbestätigt. " + error.message + " Aktuellen Wert über Windows erneut lesen.";
     } finally {
       lastTransfer = record;
       showHistory();

@@ -44,7 +44,7 @@ node --test tests/*.test.js
 python3 -m unittest discover -s tests -p '*.py' -v
 ```
 
-Die Browsertests nutzen einen lokalen Server und isolierte Browserprofile. Für die Update-Tests braucht der Checkout die Git-Objekte `678e440489266b9fb514d9688f4d0f66c5a5543e` (v3), `1aa7cd744d18c9460127836e7d678ce6670a92ee` (v4), `3449a1f2819b8b1b97279861746efd06050038bf` (v5), `5dc338e8f7a0cafb90ef61425ff5d0590369dece` (v6), `ca5aac4c0656b24458b711f2613e612b7e9165e3` (v7) und `fa280c7b26e106c0f5b77591ac4a32f694f13316` (v8). Bei einer flachen Kopie die Historie bis zu diesen Commits ergänzen. Die geprüfte Cloud-Umgebung verwendet Node 24.22.3, Python 3.12, Playwright 1.62.0 und Chromium 156. Die PWA-Prüfung nutzt die DevTools-Kommandos `PWA.install` und `PWA.launch` des vollständigen Chromium-Browsers. `CHROMIUM_PATH` kann auf dessen Programmdatei zeigen.
+Die Browsertests nutzen einen lokalen Server und isolierte Browserprofile. Für die Update-Tests braucht der Checkout die Git-Objekte `678e440489266b9fb514d9688f4d0f66c5a5543e` (v3), `1aa7cd744d18c9460127836e7d678ce6670a92ee` (v4), `3449a1f2819b8b1b97279861746efd06050038bf` (v5), `5dc338e8f7a0cafb90ef61425ff5d0590369dece` (v6), `ca5aac4c0656b24458b711f2613e612b7e9165e3` (v7), `fa280c7b26e106c0f5b77591ac4a32f694f13316` (v8) und `3d89c7285e766d092539a01ed93ab20ba4ddf41a` (v10). Bei einer flachen Kopie die Historie bis zu diesen Commits ergänzen. Die geprüfte Cloud-Umgebung verwendet Node 24.22.3, Python 3.12, Playwright 1.62.0 und Chromium 156. Die PWA-Prüfung nutzt die DevTools-Kommandos `PWA.install` und `PWA.launch` des vollständigen Chromium-Browsers. `CHROMIUM_PATH` kann auf dessen Programmdatei zeigen.
 
 Auf einem Entwicklungsrechner ohne Playwright kann eine virtuelle Python-Umgebung außerhalb des Repositorys verwendet werden:
 
@@ -73,7 +73,7 @@ Neue Objektivdaten gegen die Regelberechnung prüfen. Kameramenüs und fotografi
 
 ## Lokale USB-Anwendung
 
-Unter Windows 11 x64 beginnt der Hardwareversuch mit dem [nativen ISO-Lesetest](WINDOWS-USB.md). Der optionale Profiltransfer über gphoto2 hat eine eigene [WSL-Einrichtung](WINDOWS-WSL.md). Die folgenden Befehle gelten für die native Linux-Variante. Der kleine Node-Dienst läuft auf dem Rechner am USB-Kabel. Er liefert die Browseroberfläche und führt gphoto2 lokal aus. Für die statische Website und den Profil-Export genügt weiterhin ein Webserver.
+Unter Windows 11 x64 stehen für den nächsten Hardwareversuch der native Blenden- und der Zeittest bereit. [Einrichtung und Prüfablauf](WINDOWS-USB.md) Der optionale Profiltransfer über gphoto2 hat eine eigene [WSL-Einrichtung](WINDOWS-WSL.md). Die folgenden Befehle gelten für die native Linux-Variante. Der kleine Node-Dienst läuft auf dem Rechner am USB-Kabel. Er liefert die Browseroberfläche und führt gphoto2 lokal aus. Für die statische Website und den Profil-Export genügt weiterhin ein Webserver.
 
 1. Unter Linux Node.js ab Version 22 und das Distributionspaket `gphoto2` bereitstellen. Auf Debian-Systemen ist das Paket über `apt install gphoto2` erhältlich.
 2. An der α6400 im Fotomodus unter **USB-Verbindung** die Option **PC-Fernbedienung (PC Remote)** wählen. Ein USB-Datenkabel anschließen. Andere Anwendungen wie Bildimport oder Imaging Edge, die gerade auf diese Kamera zugreifen, beenden. [Sony-Hilfe zur ILCE-6400](https://helpguide.sony.net/ilc/1810/v1/en/contents/TP0002279243.html)
@@ -147,7 +147,7 @@ Die Regeltests schließen die 864 ursprünglichen Kombinationen ein. Neue Szenar
 - Ein vollständiges Löschen der Website-Daten entfernt auch lokal gespeicherte Auswahl und Checklisten. Für solche Tests ein separates lokales Testprofil verwenden.
 - Beim Versionswechsel zusätzlich prüfen, welche Fassung der bereits geöffnete Tab nach dem Neuladen tatsächlich zeigt.
 
-Bei späteren Regressionstests prüfen, ob die aktualisierte lokale Windows-Oberfläche **ISO über Windows lesen** und **ISO von 400 auf 500 ändern** anbietet. Der Einzelschritt benötigt die aktuelle Freigabe aus der nativen Lesung. Bei unbekannter ISO-Kodierung den vollständigen Rohwert aus der Anzeige protokollieren. Für den Geräteversuch beide Anzeigen vor und nach dem Klick vergleichen. [Ablauf für die α6400](WINDOWS-USB.md#optionaler-hardwaretest-von-iso-400-auf-500)
+Bei einem Update auf v11 in der lokalen Windows-Ansicht unter **Windows-Test** zwischen ISO, Blende und Belichtungszeit wechseln. Nach dem Wechsel verlangt der Schreibschritt eine aktuelle Vorschau für das gewählte Feld. Bei den Hardwareversuchen nach jedem einzelnen Schreibklick die Rückmeldung protokollieren und den Wert am Display ablesen. [Ablauf für die α6400](WINDOWS-USB.md#zuerst-die-blende-testen)
 
 ## Netlify
 

@@ -74,7 +74,13 @@ class TransferFlow(BrowserCase):
              "if(key!=='ab'.repeat(32))throw Error('Schlüssel passt nicht.');"
              "fs.appendFileSync(dir+'/native-steps', 'step\\n');"
              "if(fs.existsSync(dir+'/step-error'))throw Error('Rücklesung fehlgeschlagen.');"
-             "return {model:'ILCE-6400',iso:500}; });"
+             "return {model:'ILCE-6400',iso:500}; }, async field => {"
+             "const data=JSON.parse(fs.readFileSync(dir+'/exposure-reading','utf8'));"
+             "return {model:'ILCE-6400',field,...data}; }, async (field,key) => {"
+             "if(key!=='ab'.repeat(32))throw Error('Schlüssel passt nicht.');"
+             "fs.appendFileSync(dir+'/exposure-steps', field+'\\n');"
+             "if(fs.existsSync(dir+'/other-aperture'))return {model:'ILCE-6400',field,value:1100};"
+             "return {model:'ILCE-6400',field,value:field==='aperture'?900:2*65536+320}; });"
              "s.listen(0,'127.0.0.1',()=>console.log(s.address().port))"],
             cwd=ROOT, env=env, stdout=subprocess.PIPE, text=True
         )
@@ -266,6 +272,83 @@ class TransferFlow(BrowserCase):
         expect(status).to_contain_text("Ergebnis des vorherigen Windows-Schritts")
         expect(page.locator("#transfer-history")).to_contain_text("ISO 500 bestätigt zurückgelesen")
         expect(step).to_be_disabled()
+
+    def test_windows_aperture_and_shutter_steps(self):
+        page = self.page
+        self.open_panel(self.companion)
+        page.locator("#transfer-source").select_option("usb")
+        picker = page.get_by_label("Windows-Test")
+        status = page.locator("#transfer-status")
+        read = page.locator("#transfer-windows")
+        step = page.locator("#transfer-windows-step")
+        reading = self.fixture / "exposure-reading"
+        self.addCleanup(reading.unlink, missing_ok=True)
+        log = self.fixture / "exposure-steps"
+        self.addCleanup(log.unlink, missing_ok=True)
+        calls = []
+        for field, start, display, button, target in [
+            ("aperture", 800, "Blende f/8", "Blende ab f/8 um eine Stufe schließen", "f/9"),
+            ("shutter", 2 * 65536 + 250, "Belichtungszeit 1/125 s",
+             "Belichtungszeit ab 1/125 s um eine Stufe verkürzen", "1/160 s"),
+        ]:
+            with self.subTest(field=field):
+                picker.select_option(field)
+                expect(step).to_have_text(button)
+                expect(step).to_be_disabled()
+                reading.write_text(json.dumps({"value": start, "stepKey": "ab" * 32}))
+                read.click()
+                expect(status).to_contain_text(display)
+                expect(step).to_be_enabled()
+                self.assertEqual(log.read_text().splitlines() if log.exists() else [], calls)
+                picker.select_option("iso")
+                expect(step).to_be_disabled()
+                picker.select_option(field)
+                expect(step).to_be_disabled()
+                read.click()
+                expect(step).to_be_enabled()
+                step.press("Enter")
+                expect(status).to_contain_text(target + " bestätigt zurückgelesen")
+                expect(step).to_be_disabled()
+                expect(page.locator("#transfer-apply")).to_be_disabled()
+                calls.append(field)
+                self.assertEqual(log.read_text().splitlines(), calls)
+        # Bei einem relativen Schritt kann die Kamera eine andere Stufe erreichen.
+        # Allein die korrekte Rücklesung darf das Testziel bestätigen.
+        other = self.fixture / "other-aperture"
+        other.touch()
+        self.addCleanup(other.unlink)
+        reading.write_text(json.dumps({"value": 800, "stepKey": "ab" * 32}))
+        picker.select_option("aperture")
+        read.click()
+        expect(step).to_be_enabled()
+        step.click()
+        expect(status).to_contain_text("Blendenschritt unbestätigt")
+        expect(step).to_be_disabled()
+        self.assertEqual(log.read_text().splitlines(), calls + ["aperture"])
+        self.assertTrue(page.evaluate("document.documentElement.scrollWidth <= innerWidth"))
+
+    def test_windows_exposure_read_and_blocked_reasons(self):
+        self.open_panel(self.companion)
+        page = self.page
+        page.locator("#transfer-source").select_option("usb")
+        picker = page.get_by_label("Windows-Test")
+        reading = self.fixture / "exposure-reading"
+        self.addCleanup(reading.unlink, missing_ok=True)
+        for field, raw, block, expected, reason in [
+            ("shutter", 0, "value", "BULB", "1/125 s"),
+            ("shutter", 3 * 65536 + 2, "mode", "3/2 s", "keinen Fotomodus M"),
+            ("shutter", 4 * 65536 + 2, "choices", "2 s", "Einzelschritt"),
+            ("aperture", 280, "access", "f/2,8", "keine Schreibfreigabe"),
+            ("aperture", None, "value", "nicht gemeldet", "elektronisch steuerbarem Objektiv"),
+        ]:
+            with self.subTest(field=field, raw=raw):
+                reading.write_text(json.dumps({"value": raw, "stepBlock": block}))
+                picker.select_option(field)
+                page.locator("#transfer-windows").click()
+                status = page.locator("#transfer-status")
+                expect(status).to_contain_text(expected)
+                expect(status).to_contain_text(reason)
+                expect(page.locator("#transfer-windows-step")).to_be_disabled()
 
     def test_rejected_aperture_after_confirmed_iso(self):
         state, writes = self.reset_camera()

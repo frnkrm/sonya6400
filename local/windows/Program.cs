@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 internal static class Program
 {
@@ -11,20 +12,27 @@ internal static class Program
         Console.OutputEncoding = new UTF8Encoding(false);
         try
         {
-            bool step = args.Length == 2 && args[0] == "--step-400-500";
-            if (args.Length != 0 && (!step || !System.Text.RegularExpressions.Regex.IsMatch(args[1], @"\A[0-9a-f]{64}\z")))
-                throw new InvalidOperationException("Unbekannter Windows-Kameraauftrag.");
+            SonyIso.Field field;
+            bool step;
+            ParseCommand(args, out field, out step);
             if (step)
+                Console.WriteLine("0x{0:X8}", StepAndConfirm(field, args[1]));
+            else
             {
-                Console.WriteLine("0x{0:X8}", StepAndConfirm(args[1]));
-                return 0;
-            }
-            using (Wpd camera = Wpd.OpenSony())
-            {
-                var state = SonyIso.Preview(camera.ReadData);
-                string preview = state.CanStep ? " " + camera.DeviceKey : "";
-                if (state.Iso == 400 && !state.CanStep) preview = " !" + state.StepBlock;
-                Console.WriteLine("0x{0:X8}{1}", state.Iso, preview);
+                using (Wpd camera = Wpd.OpenSony())
+                {
+                    var state = SonyIso.Preview(camera.ReadData);
+                    uint? value = field == SonyIso.Field.Iso ? state.Iso : state.GetValue(field);
+                    if (!value.HasValue) Console.WriteLine("unavailable");
+                    else
+                    {
+                        string block = state.GetStepBlock(field);
+                        // Preserve the existing ISO output for values outside normal ISO 400.
+                        string suffix = block == null ? " " + camera.DeviceKey :
+                            field == SonyIso.Field.Iso && value.Value != 400 ? "" : " !" + block;
+                        Console.WriteLine("0x{0:X8}{1}", value.Value, suffix);
+                    }
+                }
             }
             return 0;
         }
@@ -40,12 +48,30 @@ internal static class Program
         }
     }
 
-    private static uint StepAndConfirm(string expectedKey)
+    private static void ParseCommand(string[] args, out SonyIso.Field field, out bool step)
+    {
+        field = SonyIso.Field.Iso;
+        step = false;
+        if (args.Length == 0) return;
+        switch (args[0])
+        {
+            case "--step-400-500": step = true; break;
+            case "--read-aperture": field = SonyIso.Field.Aperture; break;
+            case "--step-aperture": field = SonyIso.Field.Aperture; step = true; break;
+            case "--read-shutter": field = SonyIso.Field.Shutter; break;
+            case "--step-shutter": field = SonyIso.Field.Shutter; step = true; break;
+            default: throw new InvalidOperationException("Unbekannter Windows-Kameraauftrag.");
+        }
+        if (args.Length != (step ? 2 : 1) || (step && !Regex.IsMatch(args[1], @"\A[0-9a-f]{64}\z")))
+            throw new InvalidOperationException("Ungültige Parameter für den Windows-Kameraauftrag.");
+    }
+
+    private static uint StepAndConfirm(SonyIso.Field field, string expectedKey)
     {
         using (Wpd camera = Wpd.OpenSony())
         {
             RequireSameDevice(camera, expectedKey);
-            uint? confirmed = SonyIso.Step(camera.ReadData, camera.StepIsoUp);
+            uint? confirmed = SonyIso.Step(camera.ReadData, delegate { camera.StepUp(field); }, field);
             if (confirmed.HasValue) return confirmed.Value;
         }
         // v9 hardware observation: the screen showed 500 while this session still read 400.
@@ -54,7 +80,7 @@ internal static class Program
         using (Wpd camera = Wpd.OpenSony())
         {
             RequireSameDevice(camera, expectedKey);
-            return SonyIso.ConfirmInFreshSession(camera.ReadData);
+            return SonyIso.ConfirmInFreshSession(camera.ReadData, field);
         }
     }
 
