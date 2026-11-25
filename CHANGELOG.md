@@ -2,6 +2,11 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## ISO-Wert und Mehrbild-Rauschminderung unter Windows
+
+- Der native ISO-Lesetest wertet die unteren 24 Bit als Empfindlichkeitsangabe und das obere Byte als Modus aus. Bekannte Stufen der Mehrbild-Rauschminderung erscheinen ausdrücklich. Bei unbekannter Kodierung liefert die Meldung den vollständigen Hexwert für den [Vergleich am Kameradisplay](docs/WINDOWS-USB.md).
+- Der Gerätetest mit `ca5aac4` bestätigte Öffnen der Kamera, Sony-Verbindungsaufbau und Lesen des ISO-Felds. Die numerische Anzeige bleibt am Gerät zu bestätigen. Fehler der nativen Abfrage nennen den fehlgeschlagenen Schritt.
+
 ## Windows-Geräteerkennung beim ISO-Lesetest
 
 - Wenn der WPD-Manager leere Listen liefert, kann der ISO-Leser die gleiche Kamera über die aktive, von Plug & Play veröffentlichte WPD-Schnittstelle finden. Die USB-Kennung und das Modell müssen übereinstimmen.

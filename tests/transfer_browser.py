@@ -69,6 +69,7 @@ class TransferFlow(BrowserCase):
              "const s=require('./local/server.js').createApp(undefined, async () => {"
              "fs.appendFileSync(dir+'/native-reads', 'read\\n');"
              "if(fs.existsSync(dir+'/native-error'))throw Error('Kamera getrennt.');"
+             "if(fs.existsSync(dir+'/native-result'))return JSON.parse(fs.readFileSync(dir+'/native-result','utf8'));"
              "return {model:'ILCE-6400',iso:400}; });"
              "s.listen(0,'127.0.0.1',()=>console.log(s.address().port))"],
             cwd=ROOT, env=env, stdout=subprocess.PIPE, text=True
@@ -183,11 +184,27 @@ class TransferFlow(BrowserCase):
         self.assertEqual(reads.read_text().splitlines(), ["read"])
         self.assertFalse(writes.exists())
         self.assertEqual(json.loads(state.read_text())["imgsettings/iso"], "200")
+        fixture = self.fixture / "native-result"
+        self.addCleanup(fixture.unlink, missing_ok=True)
+        for reading, label in [
+            ({"iso": "auto", "mode": "mfnr"}, "ISO Auto · Mehrbild-Rauschminderung ·"),
+            ({"iso": 409600, "mode": "mfnrPlus"}, "ISO 409.600 · Mehrbild-Rauschminderung Plus ·"),
+            ({"iso": 400, "mode": "unknown", "rawIso": "0xA5000190"}, "ISO 400 · Modus unbekannt · Rohwert 0xA5000190"),
+            ({"iso": "auto", "mode": "unknown", "rawIso": "0xA5FFFFFF"}, "ISO Auto · Modus unbekannt · Rohwert 0xA5FFFFFF"),
+            ({"iso": None, "rawIso": "0xFA01F0C3"}, "Kamera hat geantwortet · ISO-Zuordnung offen · Rohwert 0xFA01F0C3"),
+        ]:
+            with self.subTest(reading=reading):
+                fixture.write_text(json.dumps({"model": "ILCE-6400", **reading}))
+                button.click()
+                expect(page.locator("#transfer-status")).to_contain_text(label)
+                expect(page.locator("#transfer-iso")).to_be_disabled()
+                expect(page.locator("#transfer-apply")).to_be_disabled()
+                self.assertFalse(writes.exists())
         fail = self.fixture / "native-error"
         fail.touch()
         self.addCleanup(fail.unlink)
         button.click()
-        expect(page.locator("#transfer-status")).to_contain_text("Kamera getrennt")
+        expect(page.locator("#transfer-status")).to_contain_text("Windows-Lesetest: Kamera getrennt")
         expect(page.locator("#transfer-status")).not_to_contain_text("ISO 400")
         expect(page.locator("#transfer-apply")).to_be_disabled()
         page.locator("#transfer-source").select_option("simulation")

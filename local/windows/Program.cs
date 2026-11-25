@@ -11,7 +11,7 @@ internal static class Program
         try
         {
             using (Wpd camera = Wpd.OpenSony())
-                Console.WriteLine(SonyIso.Read(camera.ReadData));
+                Console.WriteLine("0x{0:X8}", SonyIso.Read(camera.ReadData));
             return 0;
         }
         catch (Exception error)

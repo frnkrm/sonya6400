@@ -147,6 +147,8 @@ Die Regeltests schließen die 864 ursprünglichen Kombinationen ein. Neue Szenar
 - Ein vollständiges Löschen der Website-Daten entfernt auch lokal gespeicherte Auswahl und Checklisten. Für solche Tests ein separates lokales Testprofil verwenden.
 - Beim Versionswechsel zusätzlich prüfen, welche Fassung der bereits geöffnete Tab nach dem Neuladen tatsächlich zeigt.
 
+Für v8 auch **ISO über Windows lesen** auf der aktualisierten lokalen Oberfläche prüfen. Ein unbekannter Sony-Wert muss als vollständiger Rohwert erscheinen. Die Kameraantwort und der Fehler bei der ISO-Auswertung gehören als separate Beobachtungen ins Protokoll.
+
 ## Netlify
 
 Website: [sonyalpha6400.frnkrm.com](https://sonyalpha6400.frnkrm.com/). Repository: [frnkrm/sonya6400](https://github.com/frnkrm/sonya6400).

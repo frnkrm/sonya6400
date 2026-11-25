@@ -17,7 +17,7 @@ Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Landschaft, Porträt,
 
 ## ISO unter Windows lesen
 
-Für Windows 11 x64: Lade das aktuelle Projekt-ZIP herunter, entpacke es neu und starte **Start-Kamera.cmd**. Lass die Kamera Windows zugeordnet und schließe Sony Imaging Edge Remote. Wähle in der lokalen App **Kameraverbindung & Profil → USB am Computer → ISO über Windows lesen**. Dieser Test liest den ISO-Wert über den Windows-Treiber. Die Hardwarebestätigung für diesen Projektweg steht aus. [Windows-Anleitung mit ZIP-Download](docs/WINDOWS-USB.md)
+Für Windows 11 x64: Lade das aktuelle Projekt-ZIP herunter, entpacke es neu und starte **Start-Kamera.cmd**. Lass die Kamera Windows zugeordnet und schließe Sony Imaging Edge Remote. Wähle in der lokalen App **Kameraverbindung & Profil → USB am Computer → ISO über Windows lesen**. Der Abruf des ISO-Datenfelds über den Windows-Treiber gelang am Gerät. Zum Prüfen der Auswertung vergleiche die Anzeige im Kompass mit der ISO-Einstellung am Kameradisplay. [Windows-Anleitung mit ZIP-Download](docs/WINDOWS-USB.md)
 
 ## Eine Empfehlung an die Kamera übertragen
 

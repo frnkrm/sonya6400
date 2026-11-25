@@ -6,7 +6,18 @@ const path = require("node:path");
 const {readWindowsIso} = require("../local/windows/iso.js");
 
 test("WPD-Leser kompiliert lokale Quellen und akzeptiert nur gültige Messwerte", async () => {
-  for (const value of ["400", "auto", "", "400\n200", "102401", "0"]) {
+  const cases = [
+    ["0x00000190", {iso: 400}], ["0x00FFFFFF", {iso: "auto"}],
+    ["0x01000190", {iso: 400, mode: "mfnr"}], ["0x02000190", {iso: 400, mode: "mfnrPlus"}],
+    ["0x01FFFFFF", {iso: "auto", mode: "mfnr"}], ["0x02FFFFFF", {iso: "auto", mode: "mfnrPlus"}],
+    ["0x00000050", {iso: 80}], ["0x00032000", {iso: 204800}],
+    ["0xA5000190", {iso: 400, mode: "unknown", rawIso: "0xA5000190"}],
+    ["0xFFFFFFFF", {iso: "auto", mode: "unknown", rawIso: "0xFFFFFFFF"}],
+    ["0x00000000", {iso: null, rawIso: "0x00000000"}], ["0x0FFFFFFE", {iso: null, rawIso: "0x0FFFFFFE"}],
+    ["0x00019001", {iso: null, rawIso: "0x00019001"}],
+    ["", null], ["0x0190", null], ["0x00000190\n0x00000320", null]
+  ];
+  for (const [value, expected] of cases) {
     const calls = [];
     const read = readWindowsIso({platform: "win32", exec: async (file, args, options) => {
       calls.push(file);
@@ -21,9 +32,8 @@ test("WPD-Leser kompiliert lokale Quellen und akzeptiert nur gültige Messwerte"
       assert.deepEqual(args, []);
       return {stdout: value};
     }});
-    if (value === "400" || value === "auto")
-      assert.deepEqual(await read, {model: "ILCE-6400", iso: value === "auto" ? value : 400});
-    else await assert.rejects(read, {code: "unsupported"});
+    if (expected) assert.deepEqual(await read, {model: "ILCE-6400", ...expected});
+    else await assert.rejects(read, {code: "readback"});
     assert.equal(calls.length, 2);
     await assert.rejects(access(path.dirname(calls[1])), {code: "ENOENT"});
   }

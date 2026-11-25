@@ -145,3 +145,26 @@ test("Lokale Anwendung ohne Windows-Leser meldet die Fähigkeit als inaktiv", as
   assert.equal(session.windowsIso, false);
   assert.equal((await post("windows-iso", session.token, {})).status, 409);
 });
+
+test("Der Windows-Lesetest liefert Modus und unveränderten Rohwert nur zur Anzeige", async t => {
+  const model = "ILCE-6400";
+  let reading;
+  const {post, session, writes} = await setup(t, async () => ({model, ...reading, serial: "private"}));
+  const token = await session();
+  for (reading of [
+    {iso: "auto", mode: "mfnr"}, {iso: 25}, {iso: 409600, mode: "mfnrPlus"},
+    {iso: 400, mode: "unknown", rawIso: "0xA5000190"}, {iso: "auto", mode: "unknown", rawIso: "0xA5FFFFFF"},
+    {iso: null, rawIso: "0xFA01F0C3"}
+  ]) {
+    const result = await post("windows-iso", token, {});
+    assert.equal(result.status, 200);
+    assert.deepEqual(await result.json(), {model, ...reading});
+  }
+  for (reading of [
+    {iso: 400, mode: "unbekannt"}, {iso: null, rawIso: "0x01"},
+    {iso: 400, rawIso: "0x00000001"}, {iso: null, rawIso: "0x000000af"}, {iso: 409601}
+  ]) {
+    assert.equal((await post("windows-iso", token, {})).status, 502);
+  }
+  assert.deepEqual(writes, []);
+});

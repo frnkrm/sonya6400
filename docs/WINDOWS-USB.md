@@ -13,9 +13,10 @@ Für diesen Versuch bleibt das USB-Kabel mit **Windows 11 x64** verbunden. Die l
 
 1. Doppelklicke im **frisch entpackten Projektordner** auf **Start-Kamera.cmd**. Lass das Konsolenfenster offen. Öffne im Windows-Browser die vom Starter angezeigte lokale Adresse `http://127.0.0.1:8765/`.
 2. Öffne im **Kompass** den Abschnitt **Kameraverbindung & Profil** und wähle unter **Verbindung** den Eintrag **USB am Computer**.
-3. Klicke einmal auf **ISO über Windows lesen**. Der Test endet mit der Anzeige eines ISO-Werts oder einer Fehlermeldung. Für diesen Ablauf ist keine Schreibaktion erforderlich.
-4. Vergleiche die angezeigte feste ISO-Zahl oder **Auto ISO** mit der Einstellung auf der Kamera. Notiere beide Werte. Bei einem Fehler notiere die **genaue Fehlermeldung** statt eines geschätzten Wertes. Diese kurze Meldung reicht für die weitere Diagnose. Geräte-IDs, Seriennummern und vollständige USB-Protokolle werden dafür nicht benötigt.
-5. Beende den lokalen Server nach dem Versuch mit **Strg+C**.
+3. Lies am Kameradisplay die **aktuelle ISO-Einstellung** ab. Notiere die Zahl oder **ISO AUTO** und, falls angezeigt, **Multiframe-Rauschminderung** mit ihrer Stufe. Belasse die Kamera für den Vergleich in dieser Einstellung.
+4. Klicke einmal auf **ISO über Windows lesen**. Vergleiche die Zahl beziehungsweise **Auto ISO** sowie einen etwaigen Zusatz zur **Mehrbild-Rauschminderung** (Standard oder +) mit der Kameraanzeige.
+5. Meldet die App einen unbekannten ISO-Wert, notiere **den vollständigen Hexwert einschließlich `0x` und aller acht Stellen zusammen mit der Anzeige am Kameradisplay**. Bei einer anderen Fehlermeldung genügt deren genauer Wortlaut. Für diesen Vergleich werden keine Einstellungen geschrieben.
+6. Beende den lokalen Server nach dem Versuch mit **Strg+C**.
 
 Wenn **ISO über Windows lesen** fehlt, prüfe, ob der neue lokale Windows-Server läuft, die lokale Adresse geöffnet und **USB am Computer** ausgewählt ist. Lade die Seite neu. Meldet die App einen fehlenden 64-Bit-Compiler oder einen unvollständigen Helfer, halte diese Meldung fest. Der Lesetest erstellt seinen Helfer aus den mitgelieferten Projektquellen auf dem Windows-PC.
 
@@ -24,7 +25,7 @@ Die App fragt zusätzlich die aktiven WPD-Schnittstellen direkt bei Windows Plug
 ## Was am Gerät bereits beobachtet wurde
 
 - **Sony Imaging Edge Remote** zeigte **ISO 400** an der α6400 an.
-- Die Windows-Geräteabfrage (CIM) führte die Kamera in der Klasse **WPD** (Windows Portable Devices) mit dem Dienst **WUDFWpdMtp** und Status **OK**. Beim Gerätetest mit Stand `5b6454c` endete die Suche der lokalen App ohne zugeordneten WPD-Endpunkt. Mit `b10226a` blieben beide WPD-Managerlisten leer. PnPUtil führte am selben Kameramodell die reguläre WPD-Schnittstellenklasse `6ac27878-a6fa-4155-ba85-f98f491d4f33` auf. Das Öffnen dieser Schnittstelle und die ISO-Rücklesung stehen noch aus.
+- Die Windows-Geräteabfrage (CIM) führte die Kamera in der Klasse **WPD** (Windows Portable Devices) mit dem Dienst **WUDFWpdMtp** und Status **OK**. Beim Gerätetest mit Stand `5b6454c` endete die Suche der lokalen App ohne zugeordneten WPD-Endpunkt. Mit `b10226a` blieben beide WPD-Managerlisten leer. PnPUtil führte am selben Kameramodell die reguläre WPD-Schnittstellenklasse `6ac27878-a6fa-4155-ba85-f98f491d4f33` auf. Mit Stand `ca5aac4` öffnete die App die Kamera, schloss den Sony-Verbindungsaufbau ab und las die gesamte Eigenschaftsliste einschließlich des ISO-Felds `0xD21E`. Die damalige Auswertung wies den Wert als unbekannt ab. Ein von der App angezeigter numerischer ISO-Wert und sein Vergleich mit der Kamera stehen aus. Der Versuch führte keine Schreibaktion aus.
 - Über **WSL 2** gelang die Geräteerkennung bis einschließlich `gphoto2 --auto-detect`. Beim ersten **16-Byte-USB-OUT-Transfer** für **PTP OpenSession** lief die Zeit ab. Das trat bei beiden getesteten Anschlussreihenfolgen und mit einer frisch aufgebauten Sitzung erneut auf. Über diesen Weg wurde im Versuch kein ISO-Wert gelesen.
 
 Der native Lesetest dient ausschließlich der ISO-Abfrage. Die Mehrfeld-Vorschau **USB-Istwerte lesen** und die Übertragungsaktionen verwenden nach wie vor den separaten gphoto2-Weg. Für den dokumentierten OpenSession-Timeout ist der nächste Versuch der native Lesetest oben. Die Einrichtung für andere Installationen mit funktionierender gphoto2-Sitzung steht in der [WSL-Anleitung](WINDOWS-WSL.md). [Software- und Hardwareprüfstand](STATUS.md#kameraanbindung)

@@ -42,7 +42,7 @@ internal static class SonyIsoTests
         }
     }
 
-    private static string Read(byte[] properties)
+    private static uint Read(byte[] properties)
     {
         return SonyIso.Read(delegate(ushort opcode, uint[] args)
         {
@@ -113,7 +113,7 @@ internal static class SonyIsoTests
     private static int Main()
     {
         var calls = new List<string>();
-        string value = SonyIso.Read(delegate(ushort code, uint[] args)
+        uint value = SonyIso.Read(delegate(ushort code, uint[] args)
         {
             calls.Add(code.ToString("X4") + "/" + String.Join(",", args));
             if (code == 0x9202) return Extended;
@@ -121,18 +121,19 @@ internal static class SonyIsoTests
             return new byte[8];
         });
         Check(calls.SequenceEqual(new[] { "9201/1,0,0", "9201/2,0,0", "9202/300", "9201/3,0,0", "9209/0" }), "session order");
-        Check(value == "400", "camera current, not factory default or available value");
-        Check(Read(All(Iso(0xFFFFFF))) == "auto", "Auto ISO sentinel");
-        Check(Read(All(Iso(1250))) == "1250", "dump's numeric ISO 1250");
-        Invalid(() => Read(All(Iso(0x01000190))), "MFNR is a distinct ISO mode");
-        Invalid(() => Read(All(Iso(0))), "no ISO");
-        Invalid(() => Read(All(Iso(204800))), "outside ILCE-6400 bounds");
+        Check(value == 400, "camera current, not factory default or available value");
+        Check(Read(All(Iso(0xFFFFFF))) == 0xFFFFFF, "Auto ISO sentinel");
+        Check(Read(All(Iso(1250))) == 1250, "dump's numeric ISO 1250");
+        Check(Read(All(Iso(0x01000190))) == 0x01000190, "preserve MFNR mode byte");
+        Check(Read(All(Iso(0))) == 0, "preserve unspecified value for diagnostics");
+        Check(Read(All(Iso(204800))) == 204800, "preserve extended readout");
+        Check(Read(All(Iso(UInt32.MaxValue))) == UInt32.MaxValue, "preserve all bits of an unknown response");
 
         // A string contains D21E and an array contains 400. Neither is ISO.
         byte[] str = Hex("01 d2 ff ff 00 00 00 02 1e d2 00 00 00");
         byte[] array = Hex("02 d2 04 40 00 02 00 00 00 00 01 00 00 00 90 01 00");
         byte[] range = Hex("03 d2 04 00 00 01 01 00 02 00 01 00 00 64 00 01 00");
-        Check(Read(All(array, range, str, Iso(800))) == "800", "typed offsets before ISO");
+        Check(Read(All(array, range, str, Iso(800))) == 800, "typed offsets before ISO");
         Invalid(() => Read(All(array, range, str)), "missing property");
         Invalid(() => Read(All(Iso(400), Iso(800))), "duplicate property");
         byte[] truncated = All(Iso(400), array);
@@ -149,7 +150,7 @@ internal static class SonyIsoTests
         {
             if (code == 0x9202) return ++extQueries == 1 ? new byte[0] : Extended;
             return code == 0x9209 ? All(Iso(640)) : new byte[8];
-        }) == "640" && extQueries == 2, "camera becoming ready");
+        }) == 640 && extQueries == 2, "camera becoming ready");
         foreach (var invalidInfo in new[] { Hex("2c 01"), Hex("c8 00 ff ff ff ff") })
         {
             bool readProperties = false;

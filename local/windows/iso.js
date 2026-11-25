@@ -12,6 +12,26 @@ function failure(code, message) {
   return Object.assign(new Error(message), {code});
 }
 
+// libgphoto2's Sony ISO decoder and its ILCE-6400 configuration dump document
+// these additional sensitivities outside the profile's normal exposure range.
+const extendedIso = new Set([25, 50, 64, 80, 128000, 160000, 204800, 256000, 320000, 409600]);
+
+function decodeIso(rawIso) {
+  if (!/^0x[0-9A-F]{8}$/.test(rawIso))
+    throw failure("readback", "Der Windows-Helfer hat keinen vollständigen Sony-ISO-Rohwert geliefert.");
+  const raw = Number(rawIso);
+  const flags = raw >>> 24;
+  const sensitivity = raw & 0x00ffffff;
+  const auto = sensitivity === 0x00ffffff;
+  const fixed = (sensitivity >= 100 && sensitivity <= 102400) || extendedIso.has(sensitivity);
+  const model = "ILCE-6400";
+  if (!auto && !fixed) return {model, iso: null, rawIso};
+  const result = {model, iso: auto ? "auto" : sensitivity};
+  if (flags > 2) return {...result, mode: "unknown", rawIso};
+  if (flags !== 0) result.mode = flags === 1 ? "mfnr" : "mfnrPlus";
+  return result;
+}
+
 async function readWindowsIso({platform = process.platform, exec = execute} = {}) {
   if (platform !== "win32") throw failure("unsupported", "Dieser Lesetest benötigt Windows.");
   const compiler = path.win32.join(process.env.SystemRoot || "C:\\Windows",
@@ -43,11 +63,7 @@ async function readWindowsIso({platform = process.platform, exec = execute} = {}
       throw failure("readFailed", error.code === 1 && diagnostic
         ? diagnostic[1] : "Windows konnte den ISO-Lesetest nicht ausführen.");
     }
-    const value = stdout.trim();
-    if (value.toLowerCase() === "auto") return {model: "ILCE-6400", iso: "auto"};
-    if (!/^[1-9]\d{1,5}$/.test(value) || Number(value) < 100 || Number(value) > 102400)
-      throw failure("unsupported", "Die Kamera lieferte keinen unterstützten ISO-Wert.");
-    return {model: "ILCE-6400", iso: Number(value)};
+    return decodeIso(stdout.trim());
   } finally {
     await rm(directory, {recursive: true, force: true, maxRetries: 3}).catch(() => {});
   }

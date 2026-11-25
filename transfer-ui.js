@@ -272,6 +272,26 @@ const TransferUI = (() => {
     await connecting;
   }
 
+  function windowsIsoLabel(result) {
+    if (result.model === "ILCE-6400") {
+      const raw = typeof result.rawIso === "string" && /^0x[0-9A-F]{8}$/u.test(result.rawIso);
+      if (result.iso === null && result.mode === undefined && raw) {
+        return "Kamera hat geantwortet · ISO-Zuordnung offen · Rohwert " + result.rawIso;
+      }
+      const knownIso = result.iso === "auto" || (Number.isInteger(result.iso) && result.iso >= 25 && result.iso <= 409600);
+      if (knownIso && raw && result.mode === "unknown") {
+        return "ISO " + value("iso", result.iso) + " · Modus unbekannt · Rohwert " + result.rawIso;
+      }
+      if (knownIso && result.rawIso === undefined) {
+        const label = "ISO " + value("iso", result.iso);
+        if (result.mode === undefined) return label;
+        if (result.mode === "mfnr") return label + " · Mehrbild-Rauschminderung";
+        if (result.mode === "mfnrPlus") return label + " · Mehrbild-Rauschminderung Plus";
+      }
+    }
+    throw new Error("Die ISO-Antwort der α6400 ist unvollständig.");
+  }
+
   async function read(native = false) {
     if (el(native ? "windows" : "read").disabled || busy) return;
     busy = true;
@@ -289,10 +309,7 @@ const TransferUI = (() => {
         if (native) {
           const result = await request("/api/windows-iso", {});
           if (revision !== active) return;
-          if (result.model !== "ILCE-6400" || !(result.iso === "auto" || (Number.isSafeInteger(result.iso) && result.iso > 0))) {
-            throw new Error("Kein gültiger ISO-Messwert der α6400.");
-          }
-          el("status").textContent = "Windows · Sony " + result.model + " · ISO " + value("iso", result.iso) +
+          el("status").textContent = "Windows · Sony " + result.model + " · " + windowsIsoLabel(result) +
             " · gelesen um " + new Date().toLocaleTimeString("de-DE");
           return;
         }
@@ -306,7 +323,7 @@ const TransferUI = (() => {
       snapshot = state;
       el("status").textContent = isSim() ? "Simulation verbunden. Ziel- und Istwerte prüfen." : "USB-Istwerte gelesen. Ziel und aktuellen Gerätestand vergleichen.";
     } catch (error) {
-      if (revision === active) invalidate("Nicht verbunden. " + error.message);
+      if (revision === active) invalidate((native ? "Windows-Lesetest: " : "Nicht verbunden. ") + error.message);
     } finally {
       busy = pendingRead = false;
       controls();

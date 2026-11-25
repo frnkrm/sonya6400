@@ -107,11 +107,14 @@ function createApp(adapter = new GPhotoAdapter(), windowsIso = nativeReader) {
           if (!windowsIso) fail("platform", "Das direkte ISO-Lesen benötigt die lokale Anwendung unter Windows.", 409);
           // Die Windows-Lesung erzeugt keine Schreibvorschau und ersetzt den letzten Gerätestand.
           for (const entry of sessions.values()) entry.snapshot = null;
-          const {model, iso} = await windowsIso();
-          if (model !== "ILCE-6400" || !(iso === "auto" || (Number.isSafeInteger(iso) && iso > 0))) {
-            fail("readback", "Windows hat keinen gültigen ISO-Wert der α6400 zurückgegeben.", 502);
-          }
-          json(res, 200, {model, iso});
+          const {model, iso, mode, rawIso} = await windowsIso();
+          if (model !== "ILCE-6400") fail("readback", "Windows hat keine α6400 gemeldet.", 502);
+          const readable = iso === "auto" || (Number.isInteger(iso) && iso >= 25 && iso <= 409600);
+          const raw = typeof rawIso === "string" && /^0x[0-9A-F]{8}$/u.test(rawIso);
+          const known = readable && rawIso === undefined && [undefined, "mfnr", "mfnrPlus"].includes(mode);
+          const unknown = raw && (iso === null && mode === undefined || readable && mode === "unknown");
+          if (!known && !unknown) fail("readback", "Windows hat keine gültigen ISO-Daten der α6400 zurückgegeben.", 502);
+          json(res, 200, {model, iso, mode, rawIso});
         } else if (route === "/api/read") {
           session.snapshot = null;
           if (Object.keys(body).length) fail("format", "Die Leseanfrage benötigt keine Parameter.", 400);

@@ -4,7 +4,6 @@
 // Protocol: https://github.com/qkhanhpro/simplealphadroid/blob/197c206/docs/PROTOCOL.md
 // ISO encoding: libgphoto2/camlibs/ptp2/config.c, _stringify_Sony_ISO.
 using System;
-using System.Globalization;
 using System.IO;
 using System.Threading;
 
@@ -14,7 +13,7 @@ internal static class SonyIso
     private const ushort UInt32Type = 0x0006;
     private const int MaxPayload = 4 * 1024 * 1024;
 
-    internal static string Read(Func<ushort, uint[], byte[]> receive)
+    internal static uint Read(Func<ushort, uint[], byte[]> receive)
     {
         if (receive == null) throw new ArgumentNullException("receive");
 
@@ -51,7 +50,7 @@ internal static class SonyIso
         return properties != 0 || controls != 0;
     }
 
-    private static string CurrentIso(byte[] payload)
+    private static uint CurrentIso(byte[] payload)
     {
         var data = new Packet(payload);
         uint entries = data.UInt32();
@@ -80,12 +79,9 @@ internal static class SonyIso
         data.RequireEnd();
         if (!iso.HasValue)
             throw new InvalidDataException("Die Kamera hat keinen aktuellen Sony-ISO-Wert gemeldet.");
-        if (iso.Value == 0x00FFFFFF) return "auto";
-        // High-byte flags describe special modes such as Multi Frame NR.
-        // Do not silently translate one of those modes to a fixed ISO.
-        if (iso.Value < 100 || iso.Value > 102400)
-            throw new InvalidDataException("Der gemeldete ISO-Modus ist kein unterstützter Einzelwert.");
-        return iso.Value.ToString(CultureInfo.InvariantCulture);
+        // Preserve the complete property. The Windows reader decodes its sensitivity
+        // and mode byte separately, including values it can only report as raw.
+        return iso.Value;
     }
 
     // Advance only along the declared, length-checked PTP records. In
