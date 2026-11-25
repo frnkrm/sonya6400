@@ -23,7 +23,7 @@ Diese Recherche dokumentiert die fachlichen Grundlagen der Übertragung. Den tat
 | Ein vollständiges Website-Profil an Imaging Edge übergeben? | Keine dokumentierte direkte Übergabe beziehungsweise fertige Importfunktion für diesen Anwendungsfall gefunden. | Offen, Abschnitt 2 |
 | Einstellungen über USB verändern? | Sony Desktop Remote und die Modellliste von libgphoto2 belegen einen entsprechenden Weg. | Sony / Projekt, Abschnitte 3–4 |
 | Browsersteuerung mit zusätzlicher Anwendung? | SimpleAlphaDroid beschreibt genau diesen Ansatz für die α6400: USB zur Kamera, Browserzugriff über das Android-Gerät. | Experimentelles Projekt, Abschnitt 4 |
-| Bleiben übertragene Werte nach Trennen oder Neustart erhalten? | Für den geplanten Ablauf noch nicht geprüft; ebenso die Übernahme in MR-Speicher. | Hardwareprüfung erforderlich |
+| Bleiben übertragene Werte nach Trennen oder Neustart erhalten? | An der ILCE-6400 im Fotomodus M blieben ISO 500, f/9 und 1/160 s nach dem Trennen der nativen Windows-Verbindung und nach einem Neustart erhalten. Der MR-Abruf steht aus. | [Gerätetest H-06](../plans/003-kameraverbindung-und-presettransfer.md#displayvergleich-nach-dem-trennen) |
 | Aufnahmeprofile über SD-Karte austauschen? | Sony dokumentiert das Laden gespeicherter Einstellungen auf anderen Kameras desselben Modells. Ein passender Website-Dateigenerator ist nicht bestätigt. | Sony / offene Entwicklung, Abschnitt 5 |
 | Ist eine andere Firmware erforderlich? | Die dokumentierten Fernsteuerungswege setzen keine solche Erweiterung voraus. Ein fertiger Firmware-Presetimport wurde nicht bestätigt. | Abschnitte 1, 3 und 6 |
 

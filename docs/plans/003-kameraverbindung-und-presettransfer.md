@@ -2,7 +2,7 @@
 
 ## Eckdaten
 
-- **Status:** C-01 bis C-07 lokal softwareseitig geprüft. H-01 für feste ISO 400 und 500 unter Windows geprüft, H-02 im Fotomodus M für die drei nativen Windows-Einzelschritte bestanden. H-03 bis H-10 offen. Git- und Produktionsnachweis unter [Veröffentlichung](../STATUS.md#veröffentlichung).
+- **Status:** C-01 bis C-07 lokal softwareseitig geprüft. H-01 für feste ISO 400 und 500 unter Windows geprüft, H-02 im Fotomodus M für die drei nativen Windows-Einzelschritte bestanden. H-06 für die drei geprüften Werte nach USB-Trennung und Neustart bestanden. H-03 bis H-05 und H-07 bis H-10 offen. Git- und Produktionsnachweis unter [Veröffentlichung](../STATUS.md#veröffentlichung).
 - **Erstellt / aktualisiert:** 2026-11-25 / 2026-11-26.
 - **Basis:** [`1aa7cd7`](https://github.com/frnkrm/sonya6400/commit/1aa7cd744d18c9460127836e7d678ce6670a92ee). Die Umsetzung baut auf dem [Planungscommit fb99192](https://github.com/frnkrm/sonya6400/commit/fb99192936c61e61a431abe0e83a46b57e19f219) auf.
 - **Kennungen:** `C-01` bis `C-08`; die bestehenden Kennungen `F-01` bis `F-07` und `K-01` bis `K-26` bleiben erhalten.
@@ -127,7 +127,7 @@ Drei [Tests des lokalen Dienstes](../../tests/local-server.test.js) bestätigen 
 
 **Nachtest der finalen Übertragungsansicht:** `python3 -B tests/transfer_browser.py -v` bestand mit 3/3 Fällen. Beim zusätzlichen Fall nahm der kontrollierte CLI-Prozess zuerst die ISO an und wies dann die Blende ab. Die Oberfläche zeigte die bestätigte ISO, die abgewiesene Blende und die übersprungene Zeit als Teilergebnis. Der erneute Export des geladenen Profils erhielt dessen Zielwerte. Mit diesem Zusatzfall enthält die Browsersuite 29 Fälle.
 
-Auf Debian GNU/Linux 13 (amd64) meldete `gphoto2 --version` gphoto2 2.5.28, libgphoto2 2.5.31 und libgphoto2_port 0.12.2. Die Modellliste enthält die ILCE-6400. `gphoto2 --auto-detect` fand kein angeschlossenes Gerät. Beim Start mit `node local/server.js` und echter gphoto2-CLI meldete der USB-Leseversuch in Chromium „Keine Kamera erkannt“. Die Schaltfläche zum Schreiben blieb inaktiv. Der Adapter meldete `disconnected`. Die physischen H-Prüfungen stehen aus. Der Soll-/Ist-Vergleich pro Wert gilt jeweils für den Zeitpunkt der Rücklesung. Der Erhalt nach dem Trennen und ein späterer MR-Abruf benötigen eigene Versuche.
+Auf Debian GNU/Linux 13 (amd64) meldete `gphoto2 --version` gphoto2 2.5.28, libgphoto2 2.5.31 und libgphoto2_port 0.12.2. Die Modellliste enthält die ILCE-6400. `gphoto2 --auto-detect` fand kein angeschlossenes Gerät. Beim Start mit `node local/server.js` und echter gphoto2-CLI meldete der USB-Leseversuch in Chromium „Keine Kamera erkannt“. Die Schaltfläche zum Schreiben blieb inaktiv. Der Adapter meldete `disconnected`. Für den gphoto2-Weg stehen die physischen Prüfungen aus. Die späteren nativen Windows-Versuche sind im Hardwareprotokoll erfasst.
 
 ## Windows-Erweiterung über WSL 2
 
@@ -162,10 +162,22 @@ Referenzablauf am Rechner mit USB-Datenkabel und der lokalen Web-App. Vor dem Ve
 | H-03 | In A mit Auto ISO ein Landschaftsprofil übertragen, anschließend die Fähigkeiten in M erneut laden und vergleichen. | Auto ISO, seine Grenzen und die Min.-SS-Schwelle einzeln protokollieren. Prüfen, dass die in A gemessene Zeit automatisch bleibt. | Offen |
 | H-04 | Ein variables Zoom am kurzen und langen Ende prüfen, etwa SEL55210 bei 55 und 210 mm. Eine am langen Ende unzulässige Zielblende vorbereiten. | Verfügbare Blenden und angezeigte Begründung festhalten. Die manuell angegebene Brennweite und die gemeldeten Gerätewerte einzeln vermerken. | Offen |
 | H-05 | In M mehrere unterstützte Zielwerte wählen. Übertragung starten und die USB-Verbindung während der Operation trennen. | Pro Feld letzte bestätigte Rücklesung, Unterbrechung und ausstehende Werte notieren. Erneut verbinden und neu einlesen. | Offen |
-| H-06 | Bestätigte Werte bei laufender Kamera nach dem Abziehen des Kabels und nach Aus-/Einschalten erneut am Display prüfen. | Zwei getrennte Beobachtungen je Feld, mit Modus und etwaigen Änderungen. | Offen |
+| H-06 | Bestätigte Werte bei laufender Kamera nach dem Abziehen des Kabels und nach Aus-/Einschalten erneut am Display prüfen. | Zwei getrennte Beobachtungen je Feld, mit Modus und etwaigen Änderungen. | Bestanden für ISO 500, f/9 und 1/160 s im Fotomodus M. Die drei Ablesungen stehen unter [Displayvergleich nach dem Trennen](#displayvergleich-nach-dem-trennen). |
 | H-07 | Falls ein freier MR-Speicherplatz verfügbar ist, die bestätigten Werte an der Kamera manuell registrieren, Einstellungen ändern und den Platz abrufen. | Platz, registrierte Werte und tatsächlich wiederhergestellte Werte festhalten. Bereits belegte Plätze erhalten. | Offen |
 | H-08 | Auf dem Zielrechner ein Profil von der Produktionsseite exportieren, lokal importieren, USB verbinden und die zurückgelesenen Werte mit dem Display vergleichen. | Host, Browser, Profilversion, Berechtigungen, Transport, ggf. Fehlermeldungen und Ergebnis je Feld. | Offen |
 | H-09 | Zusätzlich gemeldete Fähigkeiten wie Weißabgleich, EV, Fokus und Stabilisierung im jeweiligen Modus über `gphoto2 --list-config` und `gphoto2 --get-config` am ermittelten Pfad nachsehen. | Pro Parameter gemeldete Lesbarkeit, Schreibbarkeit und angebotene Werte erfassen. Eine Aussage zum Schreiben erfordert einen gesonderten Versuch. | Offen |
 | H-10 | Optional ein echtes, auf einer α6400 erzeugtes Kartenprofil an einer zweiten ILCE-6400 über MR laden. Eine Karte mit freien Speicherplätzen verwenden. | Beide Modell-/Firmwarestände, Objektive, gewählter Platz und tatsächlich übernommene Felder festhalten. | Offen |
 
 Für H-09 und H-10 dokumentiert die [Verbindungsrecherche](../research/sony-a6400-verbindung-und-presettransfer.md) die offenen Folgefragen. Ein Haken setzt einen tatsächlich beobachteten Hardwareversuch voraus.
+
+### Displayvergleich nach dem Trennen
+
+Nach den nativen Windows-Einzeltests wurden die Werte im Fotomodus M an derselben ILCE-6400 abgelesen.
+
+| Zustand der Kamera | ISO | Blende | Belichtungszeit |
+| --- | ---: | ---: | ---: |
+| Eingeschaltet mit USB-Verbindung | 500 | f/9 | 1/160 s |
+| Eingeschaltet nach Abziehen des USB-Kabels | 500 | f/9 | 1/160 s |
+| Nach Aus- und Einschalten ohne USB-Kabel | 500 | f/9 | 1/160 s |
+
+Der manuelle Abruf eines registrierten Speicherplatzes wird in H-07 separat geprüft.
