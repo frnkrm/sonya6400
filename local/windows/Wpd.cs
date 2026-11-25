@@ -100,47 +100,142 @@ internal sealed class Wpd : IDisposable
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
+    // Windows can give WPD an opaque interface path. Resolve the interface to
+    // its present devnode before inspecting the nearest USB peripheral.
+    private static Key InstanceId = new Key(new Guid("78C34FC8-104A-4ACA-9EA4-524D52996E57"), 256);
+    private static Key FriendlyName = new Key(new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 14);
+
+    [DllImport("cfgmgr32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+    private static extern uint CM_Get_Device_Interface_PropertyW(string path, ref Key key,
+        out uint type, [Out] byte[] buffer, ref uint size, uint flags);
+    [DllImport("cfgmgr32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+    private static extern uint CM_Locate_DevNodeW(out uint node, string id, uint flags);
+    [DllImport("cfgmgr32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+    private static extern uint CM_Get_Device_IDW(uint node, StringBuilder id, uint chars, uint flags);
+    [DllImport("cfgmgr32.dll", ExactSpelling = true)]
+    private static extern uint CM_Get_Parent(out uint parent, uint node, uint flags);
+    [DllImport("cfgmgr32.dll", ExactSpelling = true)]
+    private static extern uint CM_Get_DevNode_PropertyW(uint node, ref Key key, out uint type,
+        [Out] byte[] buffer, ref uint size, uint flags);
+
+    private static string PropertyString(uint result, byte[] buffer, uint type, uint size)
+    {
+        if (result != 0 || type != 18 || size < 2 || size > buffer.Length || size % 2 != 0) return null;
+        return Encoding.Unicode.GetString(buffer, 0, (int)size).TrimEnd('\0');
+    }
+
+    private static string UsbAncestor(string endpoint)
+    {
+        var buffer = new byte[4096];
+        uint size = (uint)buffer.Length, type;
+        uint result = CM_Get_Device_Interface_PropertyW(endpoint, ref InstanceId, out type, buffer, ref size, 0);
+        string instance = PropertyString(result, buffer, type, size) ?? endpoint;
+        uint node;
+        if (CM_Locate_DevNodeW(out node, instance, 0) != 0) return null;
+        var id = new StringBuilder(512);
+        for (int depth = 0; depth < 32; depth++)
+        {
+            id.Clear();
+            if (CM_Get_Device_IDW(node, id, (uint)id.Capacity, 0) != 0) break;
+            string current = id.ToString();
+            if (current.StartsWith(@"USB\", StringComparison.OrdinalIgnoreCase))
+                return current; // Never claim an unrelated device through an upstream hub.
+            uint parent;
+            if (CM_Get_Parent(out parent, node, 0) != 0) break;
+            node = parent;
+        }
+        return null;
+    }
+
+    private static string UsbName(string instance)
+    {
+        uint node;
+        if (CM_Locate_DevNodeW(out node, instance, 0) != 0) return null;
+        var buffer = new byte[4096];
+        uint size = (uint)buffer.Length, type;
+        uint result = CM_Get_DevNode_PropertyW(node, ref FriendlyName, out type, buffer, ref size, 0);
+        return PropertyString(result, buffer, type, size);
+    }
+
+    private delegate void EnumerateIds(IntPtr ids, ref uint count);
+
+    private static List<string> Endpoints(EnumerateIds enumerate)
+    {
+        uint count = 0;
+        enumerate(IntPtr.Zero, ref count);
+        if (count > 256) throw new InvalidOperationException("Zu viele WPD-Geräte gemeldet.");
+        var ids = new List<string>();
+        if (count == 0) return ids;
+        int slots = (int)count;
+        IntPtr list = Marshal.AllocCoTaskMem(slots * IntPtr.Size);
+        try
+        {
+            for (int i = 0; i < slots; i++) Marshal.WriteIntPtr(list, i * IntPtr.Size, IntPtr.Zero);
+            enumerate(list, ref count);
+            if (count > slots) throw new InvalidOperationException("WPD-Geräteliste hat sich geändert. Erneut lesen.");
+            for (int i = 0; i < count; i++)
+            {
+                string id = Marshal.PtrToStringUni(Marshal.ReadIntPtr(list, i * IntPtr.Size));
+                if (!String.IsNullOrEmpty(id)) ids.Add(id);
+            }
+        }
+        finally
+        {
+            for (int i = 0; i < slots; i++) Marshal.FreeCoTaskMem(Marshal.ReadIntPtr(list, i * IntPtr.Size));
+            Marshal.FreeCoTaskMem(list);
+        }
+        return ids;
+    }
+
+    internal static string SelectEndpoint(List<string> standard, List<string> specialized,
+        Func<string, string> usbAncestor, Func<string, string, bool> modelMatches)
+    {
+        var checkedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var cameras = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        bool wrongModel = false;
+        foreach (var group in new[] { standard, specialized })
+        {
+            foreach (string id in group)
+            {
+                if (!checkedIds.Add(id)) continue;
+                string usb = usbAncestor(id);
+                string identity = usb ?? id;
+                if (!IsSonyUsbId(identity)) continue;
+                if (!modelMatches(id, usb)) { wrongModel = true; continue; }
+                if (!cameras.ContainsKey(identity)) cameras.Add(identity, id);
+            }
+        }
+        if (cameras.Count > 1) throw new InvalidOperationException("Mehrere passende Kameras gefunden. Genau eine ILCE-6400 anschließen.");
+        foreach (string id in cameras.Values) return id;
+        if (wrongModel) throw new InvalidOperationException("Sony-USB-Kennung gefunden. Der Modellname ILCE-6400 konnte nicht bestätigt werden.");
+        if (checkedIds.Count == 0) throw new InvalidOperationException("Windows meldet keine WPD-Schnittstelle. Sony Remote schließen und die Kamera im Modus PC-Fernbedienung erneut anschließen.");
+        throw new InvalidOperationException(String.Format("WPD-Einträge: {0} regulär, {1} privat. Keiner ließ sich der USB-Kennung der α6400 zuordnen.", standard.Count, specialized.Count));
+    }
+
+    private static bool IsModel(string name)
+    {
+        return name != null && Regex.IsMatch(name.Trim(), @"^(?:Sony\s+)?ILCE[\s-]?6400$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
+    private static string WpdName(IManager manager, string id)
+    {
+        uint chars = 0;
+        if (manager.GetDeviceFriendlyName(id, null, ref chars) < 0 || chars == 0 || chars > 4096) return null;
+        var name = new StringBuilder((int)chars);
+        return manager.GetDeviceFriendlyName(id, name, ref chars) >= 0 ? name.ToString() : null;
+    }
+
     private static string FindSony(IManager manager)
     {
         manager.RefreshDeviceList();
-        uint count = 0;
-        manager.GetDevices(IntPtr.Zero, ref count);
-        if (count > 256) throw new InvalidOperationException("Zu viele WPD-Geräte gemeldet.");
-        var matches = new List<string>();
-        if (count > 0)
+        var standard = Endpoints(manager.GetDevices);
+        var specialized = Endpoints(manager.GetPrivateDevices);
+        return SelectEndpoint(standard, specialized, UsbAncestor, delegate(string id, string usb)
         {
-            // GetDevices allocates each ID with CoTaskMemAlloc; the caller owns the pointer array.
-            int slots = (int)count;
-            IntPtr list = Marshal.AllocCoTaskMem(slots * IntPtr.Size);
-            try
-            {
-                for (int i = 0; i < slots; i++) Marshal.WriteIntPtr(list, i * IntPtr.Size, IntPtr.Zero);
-                manager.GetDevices(list, ref count);
-                if (count > slots) throw new InvalidOperationException("WPD-Geräteliste hat sich geändert. Erneut lesen.");
-                for (int i = 0; i < count; i++)
-                {
-                    string id = Marshal.PtrToStringUni(Marshal.ReadIntPtr(list, i * IntPtr.Size));
-                    if (IsSonyUsbId(id)) matches.Add(id);
-                }
-            }
-            finally
-            {
-                for (int i = 0; i < slots; i++) Marshal.FreeCoTaskMem(Marshal.ReadIntPtr(list, i * IntPtr.Size));
-                Marshal.FreeCoTaskMem(list);
-            }
-        }
-        if (matches.Count == 0) throw new InvalidOperationException("Windows WPD meldet keine Sony ILCE-6400 mit passender USB-Kennung.");
-        if (matches.Count > 1) throw new InvalidOperationException("Mehrere passende Kameras gefunden. Genau eine ILCE-6400 anschließen.");
-
-        uint chars = 0;
-        manager.GetDeviceFriendlyName(matches[0], null, ref chars);
-        if (chars == 0 || chars > 4096) throw new InvalidOperationException("WPD-Modellname fehlt oder ist ungültig.");
-        var name = new StringBuilder((int)chars);
-        manager.GetDeviceFriendlyName(matches[0], name, ref chars);
-        if (!Regex.IsMatch(name.ToString().Trim(), @"^(?:Sony\s+)?ILCE[\s-]?6400$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-            throw new InvalidOperationException("USB-Kennung passt, aber der WPD-Gerätename bestätigt das Modell ILCE-6400 nicht.");
-        return matches[0];
+            // The model may be published on the USB devnode instead of the WPD endpoint.
+            return IsModel(WpdName(manager, id)) || (usb != null && IsModel(UsbName(usb)));
+        });
     }
 
     // The call sites supply only the documented Sony handshake and descriptor parameters.
@@ -314,8 +409,12 @@ internal sealed class Wpd : IDisposable
     {
         void GetDevices(IntPtr ids, ref uint count);
         void RefreshDeviceList();
-        void GetDeviceFriendlyName([MarshalAs(UnmanagedType.LPWStr)] string id,
+        [PreserveSig] int GetDeviceFriendlyName([MarshalAs(UnmanagedType.LPWStr)] string id,
             [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder name, ref uint chars);
+        void GetDeviceDescription();
+        void GetDeviceManufacturer();
+        void GetDeviceProperty();
+        void GetPrivateDevices(IntPtr ids, ref uint count);
     }
 
     [ComImport, Guid("625E2DF8-6392-4CF0-9AD1-3CFA5F17775C"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

@@ -65,6 +65,33 @@ internal static class SonyIsoTests
         throw new Exception("Expected invalid data: " + label);
     }
 
+    private static void WpdSelection()
+    {
+        const string sony = @"USB\VID_054C&PID_0CAA\example";
+        const string foreign = @"USB\VID_1234&PID_5678\example";
+        var empty = new List<string>();
+        var standard = new List<string> { "opaque" };
+        var privateIds = new List<string> { "vendor-endpoint" };
+        Func<string, string, bool> model = (endpoint, usb) => true;
+        Func<string, string> resolve = id => id == "vendor-endpoint" ? sony : foreign;
+        Check(Wpd.SelectEndpoint(standard, privateIds, resolve, model) == "vendor-endpoint", "private opaque Sony endpoint");
+        Check(Wpd.SelectEndpoint(standard, privateIds, id => sony, model) == "opaque", "two aliases of one USB camera");
+        Check(Wpd.SelectEndpoint(new List<string> { sony }, empty, id => null, model) == sony, "direct ID fallback");
+        Check(Wpd.SelectEndpoint(standard, privateIds, id => sony, (id, usb) => id == "vendor-endpoint")
+            == "vendor-endpoint", "only the alias with confirmed model");
+        foreach (var probe in new Action[] {
+            () => Wpd.SelectEndpoint(empty, empty, resolve, model),
+            () => Wpd.SelectEndpoint(standard, privateIds, id => null, model),
+            () => Wpd.SelectEndpoint(new List<string> { sony }, empty, id => foreign, model),
+            () => Wpd.SelectEndpoint(standard, privateIds, id => sony + id, model),
+            () => Wpd.SelectEndpoint(standard, privateIds, resolve, (id, usb) => false)
+        }) {
+            try { probe(); }
+            catch (InvalidOperationException) { passed++; continue; }
+            throw new Exception("WPD selected an unconfirmed endpoint");
+        }
+    }
+
     private static int Main()
     {
         var calls = new List<string>();
@@ -122,8 +149,9 @@ internal static class SonyIsoTests
         foreach(string id in new[]{null, "", @"USB\VID_054C&PID_0CAA1", @"USB\VID_054C&PID_0CAB",
             @"SWD\OTHER\_??_USB#VID_054C&PID_0CAA", @"USB\VID_ffff&PID_0CAA\USB\VID_054C&PID_0CAA"})
             if (Wpd.IsSonyUsbId(id)) throw new Exception("Unexpected Sony PnP ID");
+        WpdSelection();
         Console.WriteLine("WPD: 10 device ID checks passed.");
-        Console.WriteLine("SonyIso: {0} checks passed.", passed);
+        Console.WriteLine("Sony ISO / WPD selection: {0} checks passed.", passed);
         return 0;
     }
 }

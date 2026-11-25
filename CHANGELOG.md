@@ -2,6 +2,11 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## Windows-Geräteerkennung beim ISO-Lesetest
+
+- Die Suche berücksichtigt öffentliche und private WPD-Endpunkte und deren Plug-&-Play-Zuordnung zur USB-Kamera. Modell, Hersteller- und Produktkennung werden vor der ISO-Abfrage geprüft. Die Fehlermeldung unterscheidet leere Listen von fehlender Zuordnung.
+- Der vorherige Versuch mit `5b6454c` endete am Gerät bereits bei der Endpunktsuche. Die [Windows-Anleitung](docs/WINDOWS-USB.md) beschreibt den unveränderten einmaligen Lesetest und die offenen Nachweise.
+
 ## Nativer ISO-Lesetest unter Windows
 
 - Die lokale App bietet auf Windows 11 x64 **ISO über Windows lesen** an. Die Kamera bleibt dem Windows-Treiber zugeordnet. Die [Kurzanleitung](docs/WINDOWS-USB.md) führt vom frischen Projekt-ZIP bis zur Anzeige von ISO oder Fehler.

@@ -139,7 +139,7 @@ Die lokalen Windows-Zweigtests liefen auf Linux. 50/50 Node-Tests, 4/4 Chromium-
 
 Windows führte die α6400 als WPD-Gerät mit dem Dienst `WUDFWpdMtp` und Status **OK**. Der WSL-Versuch erreichte die Geräteauflistung und `gphoto2 --auto-detect`. Beim ersten 16-Byte-USB-OUT-Transfer für `OpenSession` trat ein Timeout auf, reproduziert bei beiden Anschlussreihenfolgen und nach frischem Sitzungsaufbau. Die USB-Erkennung ist damit beobachtet, eine über WSL gelesene Kameraeinstellung steht aus.
 
-Für den nächsten Teilversuch von H-01 bleibt das USB-Gerät Windows zugeordnet. Dort startet **ISO über Windows lesen** die rein lesende Abfrage. Als Nachweis werden angezeigte ISO, Kamerawert und Ergebnis oder die konkrete Fehlermeldung festgehalten. Selbst eine erfolgreiche ISO-Lesung lässt die übrigen H-01-Felder und H-02-Schreibversuche offen. [Anleitung](../WINDOWS-USB.md)
+Der native Hardwareversuch mit `5b6454c` endete in der Endpunktsuche. Trotz der erfolgreichen CIM-Geräteabfrage konnte die Projektsoftware vor der ersten ISO-Abfrage keine passende α6400 zuordnen. Für den nächsten Teilversuch von H-01 mit erweiterter WPD-/PnP-Suche bleibt das USB-Gerät Windows zugeordnet. Dort startet **ISO über Windows lesen** die rein lesende Abfrage. Als Nachweis werden angezeigte ISO, Kamerawert und Ergebnis oder die konkrete Fehlermeldung festgehalten. Selbst eine erfolgreiche ISO-Lesung lässt die übrigen H-01-Felder und H-02-Schreibversuche offen. [Anleitung](../WINDOWS-USB.md)
 
 Der Softwarelauf für v7 bestand mit 54/54 Node-Tests, 5/5 Übertragungs- und 5/5 PWA-Fällen in Chromium. Unter Linux/Mono ließ sich der C#-5-Lesehelfer für x64 kompilieren. Die 21 Prüfungen des Sony-Protokolls arbeiteten mit konstruierten Daten. Eine echte native Rücklesung steht aus.
 

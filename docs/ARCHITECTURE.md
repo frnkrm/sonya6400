@@ -93,6 +93,8 @@ Ein vollständiges Beispiel für weite Berge aus der Hand mit dem Tamron B070:
 
 Auf Windows 11 x64 bietet die lokale USB-Ansicht den eigenen Einstieg **ISO über Windows lesen** an. Der lokale Dienst startet auf ausdrücklichen Klick einen Windows-Lesehelfer. Er verwendet die Windows Portable Devices API für den Sony-PC-Remote-Zugriff und liefert einen ISO-Wert oder einen konkreten Fehler. Die Sitzung für den Profiltransfer benötigt weiterhin die über gphoto2 gelesenen Istwerte und Fähigkeiten. Der native ISO-Wert allein dient der Anzeige und dem Vergleich vor Ort. [Windows-Lesetest](WINDOWS-USB.md)
 
+Der Helfer durchsucht die öffentlichen und privaten WPD-Geräte. Zur Identifikation prüft er die USB-Hersteller- und Produktkennung (VID/PID) und das Modell ILCE-6400. Bei einem indirekt gemeldeten Endpunkt wird die Zuordnung zum USB-Gerät über die Plug-&-Play-Gerätehierarchie geprüft. Erst bei eindeutiger Zuordnung beginnt die Kameraabfrage. Diagnosemeldungen unterscheiden zwischen leerer Auflistung und vorhandenen, aber nicht zuordenbaren Endpunkten. Gerätepfade bleiben lokal.
+
 ### Profilübertragung über WSL 2
 
 Auf Windows 11 x64 startet `Start-Kamera.cmd` den Node-Dienst auf der Windows-Seite. Der Adapter startet die Windows-Systemdatei `wsl.exe` mit `--distribution Ubuntu` und `--exec`. Im Gast setzt `/usr/bin/env` die Sprache für die gphoto2-Ausgabe und `/usr/bin/timeout` begrenzt die Laufzeit. gphoto2 erhält die einzelnen Argumente direkt. Die Ubuntu-Distribution greift über usbipd-win auf das zuvor ausgewählte USB-Gerät zu. Linux verwendet gphoto2 direkt. Beide Varianten verwenden dieselbe Fähigkeitsprüfung und Rücklesung.
