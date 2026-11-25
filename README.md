@@ -17,6 +17,17 @@ Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Porträt, Street, Gru
 
 Die App zeigt Empfehlungen. Sie steuert keine Kamera und überträgt keine Einstellungen an die α6400.
 
+## Eingeplante Weiterentwicklung
+
+**Alle 26 recherchierten Funktionen sind in [Plan 002](docs/plans/002-landschaft-und-kamerafunktionen.md) aufgenommen.** Die Umsetzung ist offen.
+
+- Eigener Landschaftsmodus für Berge, Wälder und Seen mit Hand-/Stativwahl, Wind und Nah-Fern-Schärfe.
+- Situationen wie Wasser, Sonnenaufgang, Schnee/Nebel und Sternenhimmel.
+- Genauere Objektivdaten, verfügbare Blenden und passende Stabilisierung.
+- Hilfen für Belichtung, Fokus, RAW/JPEG, Filter, Langzeitbelichtung, Intervall und Fehlerdiagnose.
+
+Die [Fachreferenz](docs/research/sony-a6400-kamera-objektive.md) enthält den Vergleich der neun Objektivprofile, praktische Startwerte und Herstellerquellen. Die [Roadmap](docs/ROADMAP.md) führt alle Punkte mit Status und ordnet sie neben der bestehenden Stabilisierung ein.
+
 ## Technischer Stand
 
 - Statische Website mit **HTML, CSS und JavaScript**, aus Netlify nach GitHub exportiert.
@@ -44,8 +55,10 @@ Dann **[http://localhost:8080/](http://localhost:8080/)** öffnen. Datei bearbei
 | Datei | Wofür? |
 | --- | --- |
 | [STATUS](docs/STATUS.md) | Bestandsaufnahme, konkrete Befunde und Grenzen der bisherigen Prüfung |
-| [ROADMAP](docs/ROADMAP.md) | Prioritäten und vorgeschlagene Entwicklungsschritte |
+| [ROADMAP](docs/ROADMAP.md) | Prioritäten, bestehende Befunde und alle 26 eingeplanten Funktionen |
 | [Erster Plan: Stabilisierung](docs/plans/001-stabilisierung.md) | Konkretes erstes Arbeitspaket mit Abnahmekriterien |
+| [Plan 002: Landschaft und Kamerafunktionen](docs/plans/002-landschaft-und-kamerafunktionen.md) | Anforderungen und Abnahmekriterien für die 26 Punkte K-01 bis K-26 |
+| [Kamera- und Objektivrecherche](docs/research/sony-a6400-kamera-objektive.md) | Herstellerdaten, Aufnahmebeispiele, Grenzen und Quellen |
 | [Planvorlage](docs/plans/TEMPLATE.md) | Neue Ideen in umsetzbare Vorhaben übersetzen |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Dateien, Funktionen, Zustand, Wetter und Service Worker |
 | [DEVELOPMENT](docs/DEVELOPMENT.md) | Einrichtung, Arbeitsablauf, gezielte Prüfungen und Netlify-Veröffentlichung |

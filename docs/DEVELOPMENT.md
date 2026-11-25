@@ -61,6 +61,16 @@ Bestehende Schlüssel für `localStorage` und das Linkformat `#s=motiv.licht.bew
 
 Neue Objektivdaten gegen die Regelberechnung prüfen. Kameramenüs und fotografische Aussagen anhand passender Herstellerquellen kontrollieren; die vorhandenen Texte sind keine unabhängige fachliche Verifikation.
 
+### Landschaft und Kamerafunktionen umsetzen
+
+Die 26 Punkte **K-01 bis K-26** sind in [Plan 002](plans/002-landschaft-und-kamerafunktionen.md) eingeplant. Für einen Umsetzungsschritt die betroffenen IDs und Abnahmekriterien auswählen; die [Fachreferenz](research/sony-a6400-kamera-objektive.md) ist die gemeinsame Grundlage für Kamera- und Objektivangaben.
+
+1. Herstellerquelle, exaktes Kameramodell beziehungsweise Objektivmodell und zugehörige Grenze prüfen. Bei veränderten Angaben die Fachreferenz mit Quelle und Prüfdatum aktualisieren.
+2. Harte Geräte- und Objektivgrenzen von fotografischen Startwerten trennen. Fehlende Daten kennzeichnen; keine präzise Blendenkurve, Schärfe- oder Belichtungsgarantie erfinden.
+3. Regel und Erklärung zusammen umsetzen. Danach Kompass, Bedienfolge, Slots, Wissen und Teilen-Karte auf übereinstimmende Werte prüfen.
+4. Die passenden Fälle aus der folgenden Tabelle und aus dem Plan durchführen. Vorhandene gespeicherte Werte und Links bei neuen Eingaben gezielt einbeziehen.
+5. Erst nach nachgewiesener Abnahme die betreffende K-ID als umgesetzt markieren. Recherche und Planung allein schließen weder eine K-ID noch einen offenen F-Befund ab.
+
 ## Prüfcheckliste für Funktionsänderungen
 
 Diese Punkte beschreiben Prüfziele. Sie sind kein Nachweis, dass bereits alle Tests durchgeführt wurden oder bestehen. Bekannte Abweichungen stehen in [STATUS](STATUS.md).
@@ -107,6 +117,31 @@ Diese Punkte beschreiben Prüfziele. Sie sind kein Nachweis, dass bereits alle T
 - [ ] In der Veröffentlichungsumgebung Service Worker, Header und Konsole auf Fehler prüfen.
 
 Im Ausgangsstand ist keine automatisierte Testsuite oder GitHub-Actions-Konfiguration enthalten. Bei Änderungen an `calc()` sind gezielte automatisierte Tests sinnvoll; ein vollständiger Lauf aller erlaubten Auswahlen umfasst derzeit 864 Kombinationen. Reine Markdown-Änderungen benötigen keine vollständige App-Testserie.
+
+### Geplante fachliche Abnahmefälle für Plan 002
+
+**Alle Fälle sind offen.** Sie beschreiben erwartetes Verhalten für spätere Funktionsänderungen. Nach einer Erweiterung reichen die bisherigen 864 Kombinationen allein nicht zur Abdeckung der neuen Eingaben. Nur die vom jeweiligen Änderungsschritt betroffenen Fälle ausführen und Ergebnisse im Plan protokollieren.
+
+| K-IDs | Fall | Erwartetes Verhalten | Prüfstand |
+| --- | --- | --- | --- |
+| K-01 bis K-05 | Ruhige Landschaft aus der Hand; danach Wind, Stativ und nahen Vordergrund jeweils ändern | Zeitstrategie, Fokus und Stabilisierung reagieren nachvollziehbar; ein Stativ wird nicht als Lösung für bewegte Blätter dargestellt | Offen |
+| K-06, K-20, K-26 | Weiches Wasser und scharfe Blätter im Wind gleichzeitig verlangen | Zielkonflikt erklären, Priorität oder Alternative anbieten; keine Garantie, beide Wünsche mit derselben langen Belichtung zu erfüllen | Offen |
+| K-07, K-08, K-16 | Heller Himmel sowie Schnee oder Nebel | Belichtungskontrolle und schrittweise Korrektur erklären; weder universelle EV-Korrektur noch exakte RAW-Clipping-Garantie behaupten | Offen |
+| K-09, K-05 | Sterne mit kurzer Brennweite | M, Stativ und manuelle Schärfeprüfung erklären; Zeit als Testwert und Unendlichstellung nicht als Fokusgarantie darstellen | Offen |
+| K-10, K-11, K-12, K-14 | Sony 55–210 bei 210 mm; danach Objektiv und Brennweite wechseln | Keine Blende weiter offen als f/6,3 am langen Ende; unbekannte Zwischenwerte nicht erfinden; Auswahl bleibt auf passende Profile und gültige Brennweiten begrenzt | Offen |
+| K-12 | Sigma 16/30/56 mm und Wunsch f/22 | Nicht verfügbare Einstellung abfangen; diese Profile schließen laut Referenz nur bis f/16 | Offen |
+| K-13 | Sigma ohne OS sowie Tamron B070 aus der Hand und am Stativ | Keine Sensorstabilisierung für die α6400 erfinden; objektivabhängige OSS/VC-Hinweise und Stativempfehlung berücksichtigen | Offen |
+| K-15 | A mit Auto ISO und erreichter ISO-Obergrenze; anschließend M mit Auto ISO | Min. SS als überschreitbare Schwelle erklären; bei M vorgegebene Zeit/Blende und mögliche Unterbelichtung am Limit benennen | Offen |
+| K-17, K-18 | RAW beziehungsweise RAW+JPEG mit Wunsch nach kamerainternem Auto HDR | Nicht verfügbare Kombination erklären; Belichtungsreihe zur späteren Bearbeitung als eigenen Weg darstellen und Bewegung berücksichtigen | Offen |
+| K-19, K-20 | Lautlose Aufnahme mit Bewegung/Kunstlicht oder gleichzeitigem Wunsch nach BULB | Passende Einschränkungen anzeigen; keine unzulässige Kombination empfehlen; Wartezeit durch Langzeit-Rauschminderung erklären | Offen |
+| K-21 | ND64, ursprüngliche Zeit 1/125 s, unveränderte ISO/Blende; Filtergewinde wechseln | Ungefähr 0,512 s berechnen; Gewinde dem exakten Objektiv zuordnen und ungültige Eingaben abfangen | Offen |
+| K-22 | Intervall- und Bildanzahlgrenzen sowie Belichtungszeit länger als Intervall | Grenzen gemäß Referenz berücksichtigen, Zeitkonflikt erklären und Einzelbilder von einem fertig erzeugten Video unterscheiden | Offen |
+| K-23 | Sehr naher Vordergrund und ferne Berge | Annahmen einer Schärfentiefenrechnung sichtbar machen; Fokusserie als manuelle Aufnahmefolge erklären | Offen |
+| K-24, K-25 | Ganze Aufnahme verwackelt, nur Blätter unscharf oder nur Vordergrund weich | Unterschiedliche Ursachen und nächste Schritte anbieten; Checkliste mit Horizont-, Fokus- und Belichtungskontrolle | Offen |
+| K-26, F-03 | Langsamer Wetterabruf nach manueller Auswahl und Vergleich aller Ausgaben | Manuelle Wahl behält Vorrang; Empfehlung, Begründung, Bedienfolge und PNG bleiben konsistent | Offen |
+| Alle betroffenen K-IDs | Alte Speicherwerte und alte gültige Links nach Erweiterung laden; danach offline starten | Gültige Angaben erhalten, neue Felder nachvollziehbar ergänzen, ungültige Werte abfangen; Grundfunktionen ohne Wetter nutzbar | Offen |
+
+Diese Abnahmefälle ersetzen keine praktische Aufnahmeprüfung, wenn eine neue fotografische Heuristik als besonders zuverlässig beworben werden soll. Herstellerangaben und vorgeschlagene Startwerte bleiben entsprechend gekennzeichnet.
 
 ## Service Worker während der Entwicklung
 

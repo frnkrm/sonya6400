@@ -2,14 +2,15 @@
 
 Stand: **25.11.2026** · untersuchter Code: [`678e440`](https://github.com/frnkrm/sonya6400/commit/678e440489266b9fb514d9688f4d0f66c5a5543e).
 
-[Überblick](../README.md) · [Architektur](ARCHITECTURE.md) · [Roadmap](ROADMAP.md) · [Erster Entwicklungsplan](plans/001-stabilisierung.md)
+[Überblick](../README.md) · [Architektur](ARCHITECTURE.md) · [Roadmap](ROADMAP.md) · [Stabilisierung](plans/001-stabilisierung.md) · [Landschaft und Kamerafunktionen](plans/002-landschaft-und-kamerafunktionen.md)
 
 ## Einschätzung
 
 - Die App ist eine überschaubare Grundlage zur Weiterentwicklung: direkt bearbeitbares HTML, CSS und JavaScript.
 - Die vorhandenen Funktionen reichen von Kameraempfehlungen bis zu Offline-Nutzung, Checklisten und Bildexport.
 - Die regulären Auswahlkombinationen werden strukturell verarbeitet. Einige Fehlerfälle benötigen Absicherung, insbesondere beim Start und im Offline-Cache.
-- Der aktuelle Dokumentationsauftrag behebt diese Fehler noch nicht. Die folgenden IDs dienen als gemeinsame Referenz für Pläne und spätere Änderungen.
+- Die bisherigen Dokumentationsänderungen beheben diese Fehler noch nicht. Die folgenden IDs dienen als gemeinsame Referenz für Pläne und spätere Änderungen.
+- Die Fachrecherche zur α6400 und zu den neun Objektivprofilen liegt mit Herstellerquellen vor. Alle **26 Erweiterungspunkte K-01 bis K-26** sind in [Plan 002](plans/002-landschaft-und-kamerafunktionen.md) aufgenommen; ihre Implementierung ist offen.
 
 ## Was im Ausgangsstand vorhanden ist
 
@@ -22,7 +23,7 @@ Stand: **25.11.2026** · untersuchter Code: [`678e440`](https://github.com/frnkr
 | Externe Daten | Open-Meteo für Wetter nach Browser-Standortfreigabe |
 | Infrastruktur im Code | Kein Backend, keine Projektabhängigkeiten, kein Build-Skript |
 | Qualitätssicherung | Keine versionierte Testsuite oder GitHub-Actions-Konfiguration im Ausgangsstand |
-| Dokumentation | Vor diesem Dokumentations-Commit keine Markdown-Dateien |
+| Dokumentation | Im ursprünglichen Import keine Markdown-Dateien; anschließend Projekt- und Entwicklungsdokumentation ergänzt |
 
 Quellen: [ursprünglicher Dateibaum](https://github.com/frnkrm/sonya6400/tree/678e440489266b9fb514d9688f4d0f66c5a5543e), [Anwendung](../index.html), [Service Worker](../sw.js), [Manifest](../manifest.webmanifest).
 
@@ -85,13 +86,26 @@ Die JavaScript-Funktionen wurden aus dem Originalcode in einer isolierten Node-U
 
 Der Wetter-Fetch hat außerdem keinen eigenen Timeout und keine ausdrückliche HTTP-/Schema-Prüfung. Netzwerkabbrüche werden abgefangen; ein hängender oder formal unvollständiger Abruf ist gesondert zu behandeln.
 
-## Fachliche und organisatorische offene Punkte
+## Fachrecherche und eingeplante Erweiterungen
 
-- Fotografische Regeln, Objektivgrenzen und Bedienhinweise anhand von Herstellerquellen und praktischen Szenarien prüfen. Die Anzeige `≥ 1/125` für eine Mindestverschlussgeschwindigkeit braucht beispielsweise eine eindeutige Formulierung als Belichtungsdauer.
+Die [Fachreferenz zur α6400 und den Objektiven](research/sony-a6400-kamera-objektive.md) dokumentiert die Recherche vom **25.11.2026**. Sie enthält geprüfte Herstellerangaben, Quellen, praktische Startwerte und deren Grenzen. Die neun Profile belegen nicht den tatsächlichen Besitz aller neun Objektive.
+
+| Bereich | Dokumentationsstand | Umsetzung in der App |
+| --- | --- | --- |
+| Landschaft und Situationen, K-01 bis K-09 | Eigener Landschaftsablauf, Hand/Stativ, Wind, Nah-Fern-Schärfe, Fokus sowie Wasser, Dämmerung, Schnee/Nebel und Sterne eingeplant | Offen |
+| Kamera und Objektive, K-10 bis K-14 | Modellzuordnung, Brennweite, Blendenlimits, Stabilisierung und Ausschnittwahl recherchiert und eingeplant | Offen |
+| Bedienung und Hilfen, K-15 bis K-26 | Belichtung, Dateiformate, Verschluss, Langzeit, Filter, Intervall, Fokusserie, Diagnose, Checkliste und Begründungen eingeplant | Offen |
+| Bestehende fotografische Hinweise | Korrekturbedarf anhand der Quellen dokumentiert | Texte und Regeln noch nicht korrigiert |
+
+Die vollständige Zuordnung der 26 Punkte und ihre Abnahmekriterien stehen in [Plan 002](plans/002-landschaft-und-kamerafunktionen.md), die Reihenfolge in der [Roadmap](ROADMAP.md). Die Einplanung ist kein Nachweis einer fertigen Funktion oder eines durchgeführten Kamera- beziehungsweise Browsertests. Die bereits bekannten technischen Befunde **F-01 bis F-07 bleiben offen**.
+
+## Fachliche Korrekturen und organisatorische offene Punkte
+
+- Die recherchierten Grenzen in die tatsächlichen App-Regeln und Bedienhinweise übernehmen: etwa „1/125 s oder kürzer“, ISO AUTO Min. SS als Umschaltschwelle, objektivabhängige Stabilisierung und Blendenlimits. Unbelegte Garantien zu RAW-Clipping, ISO-Invarianz oder einem gemessenen Objektiv-„Sweetspot“ überarbeiten. Nachweise und Zuordnung stehen in der [Fachreferenz](research/sony-a6400-kamera-objektive.md).
 - Die drei internen Speicher sind **kein festgestellter Fehler**: [Sonys α6400-Hilfe](https://helpguide.sony.net/ilc/1810/v1/de/contents/TP0002242297.html) beschreibt drei interne Speicher und zusätzliche Kartenplätze.
 - Es fehlt eine festgelegte Projektlizenz. Die Wahl bleibt eine Entscheidung des Repository-Inhabers; diese Dokumentation ergänzt keine Lizenz.
 - Aktueller Produktionsbranch, Publish-Verzeichnis und ein vollständiger Git-basierter Deploy sind im Netlify-Dashboard noch gesondert zu verifizieren. [DEVELOPMENT](DEVELOPMENT.md) enthält passende Sollwerte.
-- Neue Produktwünsche und deren Reihenfolge sind noch offen; die [Roadmap](ROADMAP.md) kennzeichnet Vorschläge entsprechend.
+- Alle 26 recherchierten Produktwünsche sind zur Entwicklung eingeplant. Die [Roadmap](ROADMAP.md) und [Plan 002](plans/002-landschaft-und-kamerafunktionen.md) beschreiben die Arbeitspakete; Termine und eine fertige Umsetzung sind damit nicht zugesagt. Weitere Ideen im Ideenparkplatz bleiben gesonderte Vorschläge.
 
 ## Pflege dieser Bestandsaufnahme
 

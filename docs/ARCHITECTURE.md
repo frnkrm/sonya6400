@@ -34,7 +34,7 @@ Stand: 25.11.2026 · analysierter Ausgangscommit: [`678e440`](https://github.com
 
 Weitere Funktionen: Objektivauswahl im „Bag“, Installationshinweise, teilbarer Einstellungslink und lokal erzeugte PNG-Karte.
 
-Die Fotografie-Angaben sind vorhandene Anwendungsinhalte. Ihre technische Richtigkeit wurde durch diese Architekturaufnahme nicht bestätigt.
+Die Fotografie-Angaben sind vorhandene Anwendungsinhalte. Ihre technische Richtigkeit wurde durch diese Architekturaufnahme nicht bestätigt. Eine spätere [Fachrecherche](research/sony-a6400-kamera-objektive.md) dokumentiert Quellen und Korrekturbedarf; die entsprechenden App-Änderungen sind in [Plan 002](plans/002-landschaft-und-kamerafunktionen.md) eingeplant.
 
 ## Datenmodell
 
@@ -134,3 +134,30 @@ Offline-Nutzung setzt bereits erfolgreich gespeicherte Dateien voraus. Der Updat
 - Cache-Verhalten bei Fehlerantworten und anderen Seiten, Zustand bei alten Speicherwerten sowie die Wetterautomatik benötigen gezielte Prüfung; siehe [Bestandsaufnahme](STATUS.md).
 - Canonical-URL, Open-Graph-Daten, JSON-LD, `robots.txt` und `sitemap.xml` verwenden die feste Produktionsdomain. Ein Domainwechsel betrifft alle diese Stellen.
 - Die derzeitige Struktur kann ohne Framework weiterentwickelt werden. Eine spätere Aufteilung von CSS, Daten und Logik ist eine eigene Änderung mit Regressionstests.
+
+## Geplante Erweiterungen für Landschaft und Kamerafunktionen
+
+**Status: geplant, noch nicht implementiert.** Die folgenden Anforderungen gehören zu [Plan 002 mit K-01 bis K-26](plans/002-landschaft-und-kamerafunktionen.md). Die vorangegangenen Abschnitte beschreiben weiterhin den vorhandenen Code. Die [Fachreferenz](research/sony-a6400-kamera-objektive.md) liefert Herstellerdaten und begründete Startwerte.
+
+### Eingaben und Objektivdaten
+
+- Den Landschaftsablauf um **Hand/Stativ, Wind beziehungsweise Motivbewegung, nahen Vordergrund und aktuelle Brennweite** ergänzen. Spezielle Ziele wie weiches Wasser oder Sternenaufnahmen erhalten nur die jeweils benötigten Zusatzangaben.
+- Die Angaben werden manuell gewählt. Die Website kann weder Zoomstellung noch Kameramodus oder ISO-Limit aus einer angeschlossenen Kamera auslesen.
+- Objektivprofile eindeutig nach Modell, Generation und Anschluss zuordnen. Bestätigte Eigenschaften umfassen Brennweitenbereich, verfügbare Blenden, OSS/VC, Filtergewinde und Naheinstellgrenze; Quellen und nicht bekannte Werte getrennt führen.
+- Bei variabler Offenblende nur belegte Grenzen verwenden. Eine genaue Zwischenkurve darf nicht aus zwei Endwerten erfunden werden. Der Kleinbildvergleich beschreibt den Bildwinkel; Berechnungen verwenden die tatsächliche Brennweite.
+- Vor der Verwendung neue Auswahlwerte, Zahlen und Einheiten validieren. Werte außerhalb der Möglichkeiten des gewählten Objektivs oder der Kamera verständlich behandeln.
+
+### Gemeinsame Regeln und übereinstimmende Ausgaben
+
+- Zeit, Blende, ISO, Fokus und Stabilisierung gemeinsam ableiten. Landschaft, Spezialmotive und Hilfen sollen dieselben fachlichen Regeln verwenden.
+- **K-02/K-03/K-13/K-15/K-20** teilen sich Zeit-, ISO- und Stabilisierungshinweise; **K-04/K-05/K-23** Schärfe- und Fokushilfen; **K-11/K-14** Brennweite und Ausschnittwahl.
+- Empfehlungen von Herstellergrenzen unterscheiden. Beispielsweise ist eine vorgeschlagene Wind-Zeit ein Startwert, eine nicht verfügbare Objektivblende dagegen eine feste Grenze.
+- Widersprüchliche Ziele wie weiches Wasser und scharfe bewegte Blätter erklären und eine Priorität wählen lassen. Wetterdaten dürfen eine bewusste manuelle Eingabe nicht überschreiben; [F-03](STATUS.md#f-03--p2--wetterantwort-überschreibt-eine-manuelle-lichtwahl) bleibt zu beheben.
+- Kompass, `steps()`, `SL`, Wissensabschnitte und PNG-Karte auf dieselbe Empfehlung und ihre Einschränkungen abstimmen. Begründungen und Quellen gehören zur fachlichen Ausgabe; die Website überträgt weiterhin keine Einstellungen an die Kamera.
+
+### Speicherung, Links und Offline-Betrieb
+
+- Vor Erweiterung von `st` und Einstellungslinks festlegen, welche neuen Werte gespeichert und geteilt werden. Fehlende neue Felder in bestehenden Daten benötigen nachvollziehbare Standardwerte.
+- Vorhandene Objektiv-IDs, `bag`, `tab` und Checklistenwerte erhalten. Falls eine Schema-Version oder Migration nötig wird, Altwerte und gültige alte `#s=`-Links ausdrücklich berücksichtigen.
+- Neue Regeln auch ohne Standortfreigabe und ohne aktuelle Wetterdaten verwendbar halten. Neue für die App erforderliche Dateien in das Offline-Konzept aufnehmen.
+- Vor Eingriffen in Zustand und Cache die offenen Befunde aus [Plan 001](plans/001-stabilisierung.md) berücksichtigen. Ein späterer Funktions-Deploy benötigt die passende Cache-Version und Prüfung vorhandener Clients; diese Dokumentation ändert den Runtime-Stand nicht.

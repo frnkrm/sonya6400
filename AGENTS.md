@@ -6,7 +6,7 @@ Diese Hinweise gelten für das gesamte Projekt. Konkrete aktuelle Nutzeraufträg
 
 1. [README](README.md), [Bestandsaufnahme](docs/STATUS.md) und [Architektur](docs/ARCHITECTURE.md) lesen.
 2. Die betroffenen Quelldateien im aktuellen Branch prüfen; Dokumentation kann hinter dem Code liegen.
-3. Passende Punkte in [ROADMAP](docs/ROADMAP.md) und vorhandenen [Plänen](docs/plans/001-stabilisierung.md) beachten.
+3. Passende Punkte in [ROADMAP](docs/ROADMAP.md), [Plan 001](docs/plans/001-stabilisierung.md) und [Plan 002](docs/plans/002-landschaft-und-kamerafunktionen.md) beachten.
 4. Nur den beauftragten Umfang umsetzen. Ein dokumentierter Vorschlag ist kein Auftrag zur sofortigen Implementierung.
 
 ## Technischer Rahmen
@@ -31,6 +31,7 @@ Diese Hinweise gelten für das gesamte Projekt. Konkrete aktuelle Nutzeraufträg
 ## Fachliche Inhalte und Oberfläche
 
 - Kameraspezifikationen, Menüwege und Objektivgrenzen anhand passender primärer Herstellerquellen verifizieren; Quellen in der Dokumentation festhalten.
+- Bei Kamera- und Objektivänderungen die [Fachreferenz](docs/research/sony-a6400-kamera-objektive.md) und die zugehörigen Abnahmekriterien K-01 bis K-26 verwenden. Die Kennungen bei späteren Teilumsetzungen erhalten; geplante Funktionen nicht als vorhanden darstellen.
 - Vorhandene Aussagen und heuristische Empfehlungen nicht als unabhängig bestätigte Fakten darstellen.
 - Die relative Bokeh-Anzeige nicht als exakte Messung der Schärfentiefe bezeichnen.
 - Deutsch, klare Bezeichnungen und kurze Abschnitte verwenden.

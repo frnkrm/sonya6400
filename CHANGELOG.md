@@ -2,6 +2,21 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## 2026-11-25 — Landschafts- und Kamerafunktionen eingeplant
+
+### Ergänzt und aktualisiert
+
+- Alle **26 Recherchepunkte** als K-01 bis K-26 in [Plan 002](docs/plans/002-landschaft-und-kamerafunktionen.md) mit Anforderungen und überprüfbaren Abnahmekriterien aufgenommen.
+- [Fachreferenz](docs/research/sony-a6400-kamera-objektive.md) mit Herstellerquellen, neun Objektivprofilen, Landschaftsszenarien und fachlichen Korrekturhinweisen ergänzt.
+- [Roadmap](docs/ROADMAP.md), Überblick und Bestandsaufnahme auf den eingeplanten Umfang abgestimmt.
+- Geplante Architekturergänzungen, gezielte Prüfziele und Hinweise für weitere Entwicklungsaufträge dokumentiert.
+
+### Umfang und Prüfstand
+
+- Die Funktionen sind **geplant, noch nicht implementiert**. Bestehende technische Befunde F-01 bis F-07 bleiben offen.
+- Nummerierung und Vollständigkeit der 26 Punkte, interne Dokumentationslinks und der reine Markdown-Umfang wurden geprüft.
+- Keine neuen Kamera-, Browser- oder Live-Deployment-Tests durchgeführt; Aufnahmevorschläge bleiben praktische Startwerte.
+
 ## 2026-11-25 — Dokumentationsgrundlage
 
 ### Ergänzt
