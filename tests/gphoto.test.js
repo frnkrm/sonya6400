@@ -139,7 +139,54 @@ test("Abgegrenzte Blendenraster und gemeldete Rohwerte werden geschnitten und ex
   assert.deepEqual((await f.adapter.read()).fields.aperture.choices, [5.6, 8]);
 });
 
-test("CLI-Prozess ordnet Sprache, USB-Fehler, Abbruch und unbestätigte Schreibfehler korrekt zu", async t => {
+test("Windows führt Erkennung, Wertprüfung, ISO-Schreiben und Rücklesen in Ubuntu aus", async () => {
+  const calls = [];
+  let iso = "100";
+  const adapter = new GPhotoAdapter({platform: "win32", exec: async (file, args, options) => {
+    assert.match(file, /\\System32\\wsl\.exe$/i);
+    assert.equal(options.windowsHide, true);
+    assert.ok(!options.shell);
+    const guestCommand = [
+      "--distribution", "Ubuntu", "--cd", "/", "--exec", "/usr/bin/env", "LC_ALL=C", "LANG=C",
+      "/usr/bin/timeout", "--kill-after=1s", "10s", "/usr/bin/gphoto2"
+    ];
+    assert.deepEqual(args.slice(0, guestCommand.length), guestCommand);
+    const operation = args.slice(guestCommand.length);
+    calls.push(operation);
+    if (operation[0] === "--auto-detect") return {stdout: detected};
+    if (operation[2] === "--list-all-config") return {stdout: camera({iso})};
+    assert.deepEqual(operation, ["--port", "usb:001,009", "--set-config-value", "/main/imgsettings/iso=200"]);
+    iso = "200";
+    return {stdout: ""};
+  }});
+  const before = await adapter.read();
+  assert.equal(before.fields.iso.current, 100);
+  assert.equal(calls.length, 2);
+  await adapter.write("iso", 200, before);
+  assert.equal((await adapter.read()).fields.iso.current, 200);
+  assert.equal(calls.filter(operation => operation.includes("--set-config-value")).length, 1);
+});
+
+test("Windows meldet fehlende Einrichtung, abgelaufenen Gastprozess und USB-Trennung", async () => {
+  for (const [exit, stderr, code] of [
+    ["ENOENT", "", "dependency"],
+    [1, Buffer.from("Wsl/Service/WSL_E_DISTRO_NOT_FOUND", "utf16le").toString(), "dependency"],
+    [127, "/usr/bin/gphoto2: No such file or directory", "dependency"],
+    [124, "", "timeout"], [137, "", "timeout"],
+    [1, "Permission denied", "permission"], [1, "Could not claim the USB device", "busy"]
+  ]) {
+    const adapter = new GPhotoAdapter({platform: "win32", exec: async () => {
+      throw Object.assign(new Error(), {code: exit, stderr});
+    }});
+    await assert.rejects(adapter.read(), {code});
+  }
+  const detached = new GPhotoAdapter({platform: "win32", exec: async () => ({stdout: header})});
+  await assert.rejects(detached.read(), {code: "disconnected", message: /usbipd/});
+});
+
+test("CLI-Prozess ordnet Sprache, USB-Fehler, Abbruch und unbestätigte Schreibfehler korrekt zu", {
+  skip: process.platform === "win32" && "POSIX-Prozessfixture für den nativen Linux-Adapter"
+}, async t => {
   const fs = require("node:fs/promises");
   const os = require("node:os");
   const path = require("node:path");

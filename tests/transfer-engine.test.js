@@ -218,3 +218,26 @@ test("C-04: Die gemessene Zeit in A darf sich ändern, ein zuvor bestätigter IS
   assert.equal(stale.rows[0].current, 400);
   assert.notEqual(stale.status, "confirmed");
 });
+
+test("Einzeltest prüft und überträgt nur ISO mit bestätigter Rücklesung", async () => {
+  const adapter = tracked("M");
+  const before = await adapter.read();
+  assert.deepEqual(preview(manual, before, "iso").rows.map(row => row.field), ["iso"]);
+  await assert.rejects(apply(adapter, manual, before, "shutter"), {code: "scope"});
+  const result = await apply(adapter, manual, before, "iso");
+  assert.equal(result.status, "confirmed");
+  assert.deepEqual(result.rows, [{field: "iso", target: 100, current: 100, status: "verified"}]);
+  assert.deepEqual(result.snapshot.fields.aperture, before.fields.aperture);
+  assert.deepEqual(result.snapshot.fields.shutter, before.fields.shutter);
+  assert.deepEqual(adapter.writes, ["iso"]);
+});
+
+test("ISO-Einzeltest respektiert Modus, gemeldete Werte und unverändertes ISO", async () => {
+  const adapter = tracked("A");
+  const before = await adapter.read();
+  assert.equal((await apply(adapter, manual, before, "iso")).status, "manual");
+  const profile = {...base, mode:"A", iso:{kind:"fixed",value:200}, shutter:{kind:"metered"}};
+  assert.equal((await apply(adapter, profile, before, "iso")).status, "unchanged");
+  assert.equal((await apply(adapter, {...profile, iso:{kind:"fixed",value:211}}, before, "iso")).status, "manual");
+  assert.deepEqual(adapter.writes, []);
+});

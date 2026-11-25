@@ -1,0 +1,43 @@
+name: Windows USB
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/windows-usb.yml"
+      - "Start-Kamera.cmd"
+      - "local/**"
+      - "transfer-*.js"
+      - "tests/*.test.js"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Adapter, Server und Einzelübertragung prüfen
+        run: node --test tests/gphoto.test.js tests/local-server.test.js tests/transfer-engine.test.js
+      - name: Lokale Anwendung über den Windows-Starter öffnen
+        shell: pwsh
+        run: |
+          $process = Start-Process cmd.exe -ArgumentList '/d /c Start-Kamera.cmd' -PassThru
+          try {
+            $session = $null
+            for ($i = 0; $i -lt 20; $i++) {
+              if ($process.HasExited) { throw "Der Windows-Starter wurde vorzeitig beendet." }
+              try {
+                $session = Invoke-RestMethod 'http://127.0.0.1:8765/api/session' -TimeoutSec 2
+                break
+              } catch { Start-Sleep -Milliseconds 500 }
+            }
+            if ($session.token -notmatch '^[a-f0-9]{64}$') { throw "Lokale Sitzung fehlt." }
+          } finally {
+            if (!$process.HasExited) { taskkill.exe /PID $process.Id /T /F }
+          }

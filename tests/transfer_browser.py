@@ -137,6 +137,29 @@ class TransferFlow(BrowserCase):
         expect(self.page.locator("#transfer-apply")).to_be_disabled()
         self.assertTrue(self.page.evaluate("document.documentElement.scrollWidth <= innerWidth"))
 
+    def test_usb_iso_single_write_then_full_profile(self):
+        state, writes = self.reset_camera()
+        self.open_panel(self.companion + "#s=landscape.tag.steh.sweet.tam&scene=water&water=soft")
+        page = self.page
+        page.locator("#transfer-source").select_option("usb")
+        expect(page.get_by_role("link", name="Windows-Anleitung")).to_be_visible()
+        button = page.get_by_role("button", name="Nur ISO übertragen")
+        expect(button).to_be_disabled()
+        page.locator("#transfer-read").click()
+        expect(button).to_be_enabled()
+        button.press("Enter")
+        expect(page.locator("#transfer-status")).to_contain_text("USB · ISO-Einzeltest · Bestätigt")
+        rows = page.locator("#transfer-rows section")
+        expect(rows).to_have_count(1)
+        expect(rows).to_contain_text("Rücklesung bestätigt")
+        self.assertEqual(writes.read_text().splitlines(), ["imgsettings/iso 100"])
+        self.assertEqual(json.loads(state.read_text()), {
+            "imgsettings/iso":"100", "capturesettings/f-number":"4", "capturesettings/shutterspeed":"1/60"
+        })
+        page.locator("#transfer-read").click()
+        expect(button).to_be_disabled()
+        expect(page.locator("#transfer-apply")).to_be_enabled()
+
     def test_rejected_aperture_after_confirmed_iso(self):
         state, writes = self.reset_camera()
         reject = self.fixture / "reject-aperture"

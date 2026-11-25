@@ -42,8 +42,14 @@ Die statische Website exportiert ein eigenes JSON-Profil. Die lokale USB-Anwendu
 
 Für den v5-Ausbau bestanden im gemeinsamen Lauf **45 von 45 Node-Tests und 28 von 28 Chromium-Tests**, jeweils ohne übersprungene Fälle. Beim abschließenden Nachtest der Übertragungsansicht bestanden alle drei Browserfälle, darunter ein zusätzlicher Fall für teilweise übernommene Werte. Damit umfasst die Suite 29 Browserfälle. Der Versionswechsel von v4 auf v5 mit Offline-Profilansicht ist abgedeckt. Beim kontrollierten Zugriff aus einer zweiten lokalen Origin war die Kamerasitzung für diese Seite gesperrt. Der JSON-Dateiweg blieb nutzbar. Der anschließend gestartete echte gphoto2-Adapter fand erwartungsgemäß keine angeschlossene Kamera.
 
+### Windows-USB-Prüfstand
+
+In einem Praxistest zeigte **Sony Imaging Edge Remote** unter Windows an der angeschlossenen α6400 **ISO 400** an. Damit ist der Leseweg über Sonys Anwendung belegt. Eine Rücklesung über die Projektsoftware mit WSL 2 und gphoto2 sowie ein bestätigter Schreibversuch über **Nur ISO übertragen** stehen am Gerät aus. Das H-Protokoll bleibt für diese Projektprüfungen offen. [Windows-Anleitung](WINDOWS-USB.md) · [Hardwareprotokoll](plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
+
+Für die Windows-Erweiterung bestanden unter Linux **50 von 50 Node-Tests** sowie im Chromium-Nachtest **4 von 4 Übertragungsfällen** und **4 von 4 PWA-Fällen**. Dazu gehörten kontrollierte WSL-Argumente, Fehler bei der WSL-Ausführung und eine ISO-Einzelaktion mit kontrolliertem gphoto2-Prozess. Eine Prüfung mit dem veröffentlichten ILCE-6400-Konfigurationsdump ergab Modus M, Istwert ISO 1250 und die angebotene Wahl ISO 100. Der [Windows-Workflow](../.github/workflows/windows-usb.yml) startet den Dienst über die CMD-Datei und öffnet eine Sitzung. Das Ergebnis auf dem Windows-Runner ist gesondert zu prüfen.
+
 ## Veröffentlichung
 
 Am 25. November 2026 bestätigte GitHub den Fast-Forward von `fb99192` auf den [Funktionscommit 3449a1f](https://github.com/frnkrm/sonya6400/commit/3449a1f2819b8b1b97279861746efd06050038bf). `git ls-remote origin refs/heads/main` bestätigte den Commit auf `main`.
 
-Der zugehörige Netlify-Deploy und die ausgelieferte Fassung sind offen (C-08/OPS-01). Beim Zugriff auf `sonyalpha6400.frnkrm.com` und beim Abruf des Commitstatus über `api.github.com` antwortete der Cloud-Proxy auch nach dem Push mit HTTP 403. Für die Live-Abnahme im Netlify-Deploy den veröffentlichten Git-Commit prüfen, die Startseite mit der Marke `app-release=v5` laden und unter **Kameraverbindung & Profil** eine Empfehlung exportieren. [Produktionsseite](https://sonyalpha6400.frnkrm.com/)
+Der zugehörige Netlify-Deploy und die ausgelieferte Fassung sind offen (C-08/OPS-01). Beim Zugriff auf `sonyalpha6400.frnkrm.com` und beim Abruf des Commitstatus über `api.github.com` antwortete der Cloud-Proxy auch nach dem Push mit HTTP 403. Für die Live-Abnahme im Netlify-Deploy den veröffentlichten Git-Commit prüfen, die Startseite mit der aktuellen Marke `app-release=v6` laden und unter **Kameraverbindung & Profil** eine Empfehlung exportieren. [Produktionsseite](https://sonyalpha6400.frnkrm.com/)

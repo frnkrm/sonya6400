@@ -33,7 +33,8 @@
     return snapshot;
   }
 
-  function preview(input, snapshot) {
+  function preview(input, snapshot, scope) {
+    if (scope !== undefined && scope !== "iso") throw failure("scope", "Unbekannter Übertragungsumfang.");
     const profile = profiles.validate(input);
     validateSnapshot(snapshot);
     const targets = {
@@ -48,13 +49,14 @@
     if (profile.iso.kind === "auto") {
       manual.push("Auto-ISO-Grenzen " + profile.iso.min + "–" + profile.iso.max + " an der Kamera einstellen.");
     }
-    if (profile.shutter.kind === "minAuto") {
+    if (!scope && profile.shutter.kind === "minAuto") {
       const denominator = 1 / profile.shutter.seconds;
       const time = Number.isInteger(denominator) && denominator > 1 ? "1/" + denominator : profile.shutter.seconds;
       manual.push("ISO AUTO Min. SS auf " + time + " s als Umschaltschwelle einstellen.");
     }
-    manual.push("Profilobjektiv und " + profile.focalMm + " mm vor Ort prüfen. Fokus, Stabilisierung und Bildfolge gemäß Bedienfolge einstellen.");
-    const rows = fields.map(field => {
+    if (!scope) manual.push("Profilobjektiv und " + profile.focalMm + " mm vor Ort prüfen. Fokus, Stabilisierung und Bildfolge gemäß Bedienfolge einstellen.");
+    const selected = scope === "iso" ? ["iso"] : fields;
+    const rows = selected.map(field => {
       const target = targets[field];
       const {current, writable, choices} = snapshot.fields[field];
       let message;
@@ -117,12 +119,12 @@
     return structuredClone(validateSnapshot(await bounded(adapter, 28000, signal => adapter.read({signal}))));
   }
 
-  async function apply(adapter, input, expectedSnapshot) {
+  async function apply(adapter, input, expectedSnapshot, scope) {
     if (applying.has(adapter) || pending.has(adapter)) {
       throw failure("busy", "Eine Kameraoperation läuft bereits.");
     }
     const expected = structuredClone(expectedSnapshot);
-    const {rows, manual} = preview(input, expected);
+    const {rows, manual} = preview(input, expected, scope);
     const result = {rows, manual, status: "unchanged", stale: false, snapshot: null};
     function stop(message, stale) {
       for (const row of rows) {

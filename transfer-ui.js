@@ -72,12 +72,17 @@ const TransferUI = (() => {
               <option value="A">A · Blendenpriorität</option><option value="M">M · Manuell</option>
             </select></label>
           </div>
-          <p id="transfer-usb-help" hidden>Auf dem Linux-Rechner am USB-Kabel Node.js und gphoto2 einrichten.
-            Im Projektordner <code>node local/server.js</code> starten, <code>http://127.0.0.1:8765/</code> öffnen und das JSON-Profil laden.
-            Die Prüfung an einer echten α6400 steht aus.
-            <a href="https://github.com/frnkrm/sonya6400/blob/main/docs/DEVELOPMENT.md#lokale-usb-anwendung">Einrichtung auf GitHub</a></p>
+          <div id="transfer-usb-help" hidden>
+            <p>Unter Windows 11 nach der Einrichtung <code>Start-Kamera.cmd</code> starten.
+              <a href="https://github.com/frnkrm/sonya6400/blob/main/docs/WINDOWS-USB.md">Windows-Anleitung</a></p>
+            <p>Unter Linux im Projektordner <code>node local/server.js</code> starten.
+              <a href="https://github.com/frnkrm/sonya6400/blob/main/docs/DEVELOPMENT.md#lokale-usb-anwendung">Linux-Einrichtung</a></p>
+            <p>Auf dem Kameracomputer <code>http://127.0.0.1:8765/</code> öffnen und das Profil laden.
+              Die Prüfung an einer echten α6400 steht aus.</p>
+          </div>
           <div class="transfer-actions">
             <button type="button" id="transfer-read" class="chip">Simulationswerte lesen</button>
+            <button type="button" id="transfer-iso" class="chip" disabled>Nur ISO übertragen</button>
             <button type="button" id="transfer-apply" class="chip on" disabled>Einstellungen übertragen</button>
           </div>
           <p id="transfer-status" role="status" aria-live="polite"></p>
@@ -107,7 +112,8 @@ const TransferUI = (() => {
       invalidate("Nicht verbunden. Istwerte für die gewählte Verbindung lesen.");
     };
     el("read").onclick = read;
-    el("apply").onclick = apply;
+    el("apply").onclick = () => apply();
+    el("iso").onclick = () => apply("iso");
   }
 
   function describeProfile() {
@@ -145,8 +151,10 @@ const TransferUI = (() => {
     el("usb-help").hidden = !usb;
     el("read").textContent = usb ? "USB-Istwerte lesen" : "Simulationswerte lesen";
     el("read").disabled = busy || !profile() || (usb && !local);
-    el("apply").disabled = busy || !snapshot || !profile() ||
-      !TransferEngine.preview(profile(), snapshot).rows.some(row => row.status === "ready");
+    const ready = !busy && snapshot && profile()
+      ? TransferEngine.preview(profile(), snapshot).rows.filter(row => row.status === "ready") : [];
+    el("apply").disabled = ready.length === 0;
+    el("iso").disabled = !ready.some(row => row.field === "iso");
     for (const id of ["source", "mode", "import", "current"]) el(id).disabled = busy;
     el("export").textContent = imported ? "Dateiprofil als JSON speichern" : "Empfehlung als JSON speichern";
     el("export").disabled = !profile();
@@ -274,11 +282,11 @@ const TransferUI = (() => {
     }
   }
 
-  async function apply() {
-    if (el("apply").disabled || busy) return;
+  async function apply(scope) {
+    if (busy || el(scope === "iso" ? "iso" : "apply").disabled) return;
     busy = true;
     const expected = snapshot;
-    const source = isSim() ? "Simulation" : "USB";
+    const source = (isSim() ? "Simulation" : "USB") + (scope === "iso" ? " · ISO-Einzeltest" : "");
     const record = {
       revision, target: el("profile").textContent,
       time: new Date().toLocaleTimeString("de-DE"), message: "", result: null
@@ -286,11 +294,11 @@ const TransferUI = (() => {
     snapshot = null;
     const active = revision;
     controls();
-    el("status").textContent = (isSim() ? "Simulation" : "USB") + " · Übertragung läuft …";
+    el("status").textContent = source + " · Übertragung läuft …";
     try {
       const result = isSim()
-        ? await TransferEngine.apply(simulation, profile(), expected)
-        : await request("/api/apply", {profile: profile(), expected});
+        ? await TransferEngine.apply(simulation, profile(), expected, scope)
+        : await request("/api/apply", {profile: profile(), expected, scope});
       record.result = result;
       record.message = [source + " · " + (resultStates[result.status] || "Ergebnis unklar"),
         result.message, result.stale ? "Letzter Gerätestand veraltet." : ""].filter(Boolean).join(" ");

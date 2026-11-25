@@ -2,6 +2,7 @@
 
 const { execFile } = require("node:child_process");
 const { createHash } = require("node:crypto");
+const { win32 } = require("node:path");
 const { promisify } = require("node:util");
 const { snapshotDifference } = require("../transfer-engine.js");
 
@@ -20,18 +21,34 @@ function failure(code, message) {
   return Object.assign(new Error(message), { code });
 }
 
-async function command(args, signal) {
+async function command(args, signal, platform, exec) {
+  const windows = platform === "win32";
+  // WSL2 erhält ausschließlich die vom Adapter erzeugten Argumente. Auch im
+  // Gast begrenzt timeout die Laufzeit, falls der Windows-Client beendet wird.
+  const program = windows
+    ? win32.join(process.env.SystemRoot || "C:\\Windows", "System32", "wsl.exe")
+    : "gphoto2";
+  const argv = windows ? [
+    "--distribution", "Ubuntu", "--cd", "/", "--exec", "/usr/bin/env", "LC_ALL=C", "LANG=C",
+    "/usr/bin/timeout", "--kill-after=1s", "10s", "/usr/bin/gphoto2", ...args
+  ] : args;
   try {
-    const result = await execute("gphoto2", args, {
-      env: { ...process.env, LC_ALL: "C", LANG: "C" },
+    const result = await exec(program, argv, {
+      env: { ...process.env, LC_ALL: "C", LANG: "C", ...(windows && { WSL_UTF8: "1" }) },
       timeout: 12000, killSignal: "SIGKILL", maxBuffer: 4 * 1024 * 1024,
-      signal, encoding: "utf8"
+      signal, encoding: "utf8", windowsHide: true
     });
     return result.stdout;
   } catch (error) {
-    const details = [error.stderr, error.stdout].join("\n");
-    if (error.killed || error.signal || error.code === "ABORT_ERR") {
+    const details = [error.stderr, error.stdout].join("\n").replaceAll("\0", "");
+    if (error.killed || error.signal || error.code === "ABORT_ERR" || (windows && [124, 137].includes(error.code))) {
       throw failure("timeout", "USB-Abfrage abgebrochen oder Zeitlimit erreicht. Kamerawerte erneut lesen.");
+    }
+    if (windows && (error.code === "ENOENT" || /Wsl\/|WSL_E_|0x80370102|0x8007019e|wsl\.exe --install/i.test(details))) {
+      throw failure("dependency", "WSL 2 mit der Distribution Ubuntu starten. In PowerShell mit wsl --list --verbose prüfen.");
+    }
+    if (windows && error.code === 127) {
+      throw failure("dependency", "gphoto2 fehlt in Ubuntu. Dort sudo apt install gphoto2 ausführen.");
     }
     if (error.code === "ENOENT") throw failure("dependency", "gphoto2 fehlt. Installiere das lokale Kommandozeilenprogramm.");
     if (/permission denied|insufficient permissions|access denied/i.test(details) || error.code === "EACCES") {
@@ -57,7 +74,7 @@ function usbPort(listing) {
   const header = lines.findIndex(line => /^-{4,}[ -]*$/.test(line.trim()));
   if (header < 0) throw failure("unsupported", "Die Geräteliste von gphoto2 ist unlesbar.");
   const devices = lines.slice(header + 1).filter(line => line.trim());
-  if (!devices.length) throw failure("disconnected", "Keine Kamera erkannt. USB-Kabel und PC-Fernbedienung prüfen.");
+  if (!devices.length) throw failure("disconnected", "Keine Kamera erkannt. USB-Kabel und PC-Fernbedienung prüfen. Unter Windows muss usbipd die Kamera an WSL durchreichen.");
   if (devices.length !== 1) throw failure("multiple", "Mehrere Geräte erkannt. Nur die gewünschte α6400 anschließen.");
   const match = /\s+(usb:\d{1,3},\d{1,3})\s*$/.exec(devices[0]);
   if (!match) throw failure("unsupported", "Das erkannte Gerät meldet keinen eindeutigen USB-Anschluss.");
@@ -185,8 +202,8 @@ function fieldInfo(field, widget, mode, rawAperture) {
 }
 
 class GPhotoAdapter {
-  constructor({ run = command } = {}) {
-    this.run = run;
+  constructor({ run, platform = process.platform, exec = execute } = {}) {
+    this.run = run || ((args, signal) => command(args, signal, platform, exec));
   }
 
   async inspect(signal) {

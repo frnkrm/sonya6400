@@ -2,6 +2,11 @@
 
 Hier stehen nachvollziehbare Änderungen am Projekt. Neue Einträge kommen nach oben; zukünftige Vorhaben stehen in der [Roadmap](docs/ROADMAP.md).
 
+## 2026-11-25 — USB-Einrichtung unter Windows
+
+- Das Projekt-ZIP enthält einen Windows-Starter für den lokalen Kameradienst. Node.js läuft unter Windows, gphoto2 in Ubuntu unter WSL 2. Eine [Anleitung](docs/WINDOWS-USB.md) erklärt die Gerätezuordnung und den ersten Lesetest.
+- **Nur ISO übertragen** ermöglicht den gezielten Erstversuch mit einer einzigen Einstellung und anschließender Rücklesung. In einem Praxistest zeigte Sony Imaging Edge Remote unter Windows ISO 400 an. Für den Projektadapter steht der Geräteversuch aus.
+
 ## 2026-11-25 — Übertragungsprofile und lokale USB-Verbindung
 
 - Kameraempfehlungen liefern strukturierte ISO-, Blenden- und Zeitangaben für ein versioniertes JSON-Profil. Modus A behält seine Belichtungsautomatik, auch wenn eine Schwelle für ISO AUTO Min. SS gewählt wurde.

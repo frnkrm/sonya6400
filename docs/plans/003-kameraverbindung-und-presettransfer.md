@@ -129,14 +129,20 @@ Drei [Tests des lokalen Dienstes](../../tests/local-server.test.js) bestätigen 
 
 Auf Debian GNU/Linux 13 (amd64) meldete `gphoto2 --version` gphoto2 2.5.28, libgphoto2 2.5.31 und libgphoto2_port 0.12.2. Die Modellliste enthält die ILCE-6400. `gphoto2 --auto-detect` fand kein angeschlossenes Gerät. Beim Start mit `node local/server.js` und echter gphoto2-CLI meldete der USB-Leseversuch in Chromium „Keine Kamera erkannt“. Die Schaltfläche zum Schreiben blieb inaktiv. Der Adapter meldete `disconnected`. Die physischen H-Prüfungen stehen aus. Der Soll-/Ist-Vergleich pro Wert gilt jeweils für den Zeitpunkt der Rücklesung. Der Erhalt nach dem Trennen und ein späterer MR-Abruf benötigen eigene Versuche.
 
+## Windows-Erweiterung
+
+Auf Windows 11 x64 führt der lokale Dienst gphoto2 über WSL 2 mit Ubuntu aus. Die USB-Zuordnung erfolgt über usbipd-win ab Version 5. **Nur ISO übertragen** dient als kleinster Schreibversuch nach dem reinen Lesen. In einem Praxistest zeigte Sony Imaging Edge Remote unter Windows **ISO 400** an. Für H-01 und H-02 ist ein eigener Versuch in der Projektoberfläche erforderlich. [Windows-Anleitung](../WINDOWS-USB.md)
+
+Die lokalen Windows-Zweigtests liefen auf Linux. 50/50 Node-Tests, 4/4 Chromium-Übertragungsfälle und 4/4 Chromium-PWA-Fälle bestanden. Der Browser-Einzelversuch schrieb nach dem ausdrücklichen Klick genau ISO über einen kontrollierten CLI-Prozess. Der öffentliche ILCE-6400-Konfigurationsdump lieferte beim kontrollierten Windows-Aufruf M, ISO 1250 und das erlaubte Ziel ISO 100. Der separate Windows-Runner prüft den Start der CMD-Datei und die Sitzung. Den Ausführungsstand nennt [STATUS](../STATUS.md#veröffentlichung).
+
 ## Hardwareprotokoll
 
 Referenzablauf am Rechner mit USB-Datenkabel, gphoto2 und der lokalen Web-App. Vor dem Versuch Datum, Betriebssystem, Browser, Commit, Ausgabe von `gphoto2 --version`, Kameramodell und Firmware, Objektivmodell, Zoomstellung, Foto-/Fokusmodus sowie die Ausgangswerte für ISO, Blende und Zeit notieren. Die [Einrichtung](../DEVELOPMENT.md#lokale-usb-anwendung) beschreibt Start und Verbindung.
 
 | ID | Schritte am Gerät | Beobachtung im Protokoll | Status |
 | --- | --- | --- | --- |
-| H-01 | Einzige ILCE-6400 auf USB-Verbindung **PC-Fernbedienung / PC Remote** stellen, mit Datenkabel anschließen und in der lokalen App verbinden. | Modell und Modus, gemeldete Istwerte und Auswahlmöglichkeiten mit Kameradisplay vergleichen. | Offen |
-| H-02 | Am Moduswahlrad M wählen. Für ISO, Blende und Zeit jeweils ein Profil mit genau einem abweichenden, am Gerät angebotenen Ziel vorbereiten und bewusst übertragen. | Ausgangs-, Ziel-, zurückgelesenen und angezeigten Wert je Feld notieren, inklusive Ablehnungen. | Offen |
+| H-01 | Unter Windows zunächst die bestätigte Sony-BUSID an WSL weiterreichen. Einzige ILCE-6400 auf USB-Verbindung **PC-Fernbedienung / PC Remote** stellen, mit Datenkabel anschließen und in der lokalen App verbinden. | Modell und Modus, gemeldete Istwerte und Auswahlmöglichkeiten mit Kameradisplay vergleichen. | Offen |
+| H-02 | Am Moduswahlrad M wählen. Mit **Nur ISO übertragen** zuerst einen angezeigten und vom Istwert abweichenden ISO-Zielwert ausprobieren. Für Blende und Zeit anschließend jeweils ein Profil mit genau einem abweichenden, am Gerät angebotenen Ziel vorbereiten und bewusst übertragen. | Ausgangs-, Ziel-, zurückgelesenen und angezeigten Wert je Feld notieren, inklusive Ablehnungen. | Offen |
 | H-03 | In A mit Auto ISO ein Landschaftsprofil übertragen, anschließend die Fähigkeiten in M erneut laden und vergleichen. | Auto ISO, seine Grenzen und die Min.-SS-Schwelle einzeln protokollieren. Prüfen, dass die in A gemessene Zeit automatisch bleibt. | Offen |
 | H-04 | Ein variables Zoom am kurzen und langen Ende prüfen, etwa SEL55210 bei 55 und 210 mm. Eine am langen Ende unzulässige Zielblende vorbereiten. | Verfügbare Blenden und angezeigte Begründung festhalten. Die manuell angegebene Brennweite und die gemeldeten Gerätewerte einzeln vermerken. | Offen |
 | H-05 | In M mehrere unterstützte Zielwerte wählen. Übertragung starten und die USB-Verbindung während der Operation trennen. | Pro Feld letzte bestätigte Rücklesung, Unterbrechung und ausstehende Werte notieren. Erneut verbinden und neu einlesen. | Offen |

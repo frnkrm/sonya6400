@@ -107,6 +107,10 @@ function createApp(adapter = new GPhotoAdapter()) {
           session.snapshot = {...snapshot, ticket: randomBytes(16).toString("hex")};
           json(res, 200, session.snapshot);
         } else {
+          if (Object.keys(body).some(key => !["profile", "expected", "scope"].includes(key)) ||
+              (Object.hasOwn(body, "scope") && body.scope !== "iso")) {
+            fail("scope", "Unbekannter Übertragungsumfang.", 400);
+          }
           const expected = session.snapshot;
           if (!expected || expected.ticket !== body.expected?.ticket)
             fail("stale", "Vorschau abgelaufen. Kamera erneut auslesen.", 409);
@@ -119,7 +123,7 @@ function createApp(adapter = new GPhotoAdapter()) {
           // Die freigegebene Vorschau kommt aus der Sitzung, nie aus frei
           // veränderbaren Formularfeldern. Eine Aktion verbraucht die Vorschau.
           for (const entry of sessions.values()) entry.snapshot = null;
-          const result = await TransferEngine.apply(adapter, profile, expected);
+          const result = await TransferEngine.apply(adapter, profile, expected, body.scope);
           json(res, 200, result);
         }
       } finally {

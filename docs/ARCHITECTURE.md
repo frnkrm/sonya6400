@@ -87,3 +87,10 @@ Ein vollständiges Beispiel für weite Berge aus der Hand mit dem Tamron B070:
 - Die gekennzeichnete **Simulation** liefert kontrollierte Fähigkeiten und Istwerte im Browser. Ein Profil lässt sich auf diese Weise auch offline ausprobieren.
 - Für **USB** startet der Benutzer auf dem Linux-Rechner [local/server.js](../local/server.js). Dieser Dienst hört auf Loopback und liefert die Oberfläche auf derselben Origin wie die lokale API. Die Sitzung ist lokal gebunden. Der USB-Adapter liest die gphoto2-Konfiguration des erkannten Geräts und gleicht Sollwert, angebotene Auswahl und Rücklesung je Feld ab.
 - Die öffentliche Website übergibt ihre Empfehlung als JSON-Datei. Zum tatsächlichen Schreiben wird die Datei auf dem Rechner am Kabel eingelesen, geprüft und bewusst übertragen. Die Verbindungshilfe deckt auch Sonys getrennte WLAN-/NFC-Verbindung über Imaging Edge Mobile ab. [Einrichtung](DEVELOPMENT.md#lokale-usb-anwendung) · [Verbindungsrecherche](research/sony-a6400-verbindung-und-presettransfer.md)
+
+
+### Windows mit WSL 2
+
+Auf Windows 11 x64 startet `Start-Kamera.cmd` den Node-Dienst auf der Windows-Seite. Der Adapter startet die Windows-Systemdatei `wsl.exe` mit `--distribution Ubuntu` und `--exec`. Im Gast setzt `/usr/bin/env` die Sprache für die gphoto2-Ausgabe und `/usr/bin/timeout` begrenzt die Laufzeit. gphoto2 erhält die einzelnen Argumente direkt. Die Ubuntu-Distribution greift über usbipd-win auf das zuvor ausgewählte USB-Gerät zu. Linux verwendet gphoto2 direkt. Beide Varianten verwenden dieselbe Fähigkeitsprüfung und Rücklesung.
+
+**Nur ISO übertragen** begrenzt den bewussten Schreibversuch auf das ISO-Feld der aktuellen Vorschau. Die vollständige Profilübertragung bleibt eine eigene Aktion. Die [Windows-Anleitung](WINDOWS-USB.md) führt durch die Zuordnung der Kamera über BUSID und den Vergleich von Zielwert, Rücklesung und Kameradisplay.

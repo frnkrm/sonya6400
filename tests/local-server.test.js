@@ -102,3 +102,18 @@ test("Ein laufender Lesevorgang sperrt die Kamera auch für andere Sitzungen", a
   }
   assert.equal((await pending).status, 200);
 });
+
+test("Die USB-Sitzung akzeptiert explizit ISO allein und verbraucht diese Vorschau", async t => {
+  const {session, post, writes} = await setup(t);
+  const token = await session();
+  const expected = await (await post("read", token, {})).json();
+  for (const body of [{scope: null}, {scope: "aperture"}, {scope: ["iso"]}, {scopes: ["iso"]}]) {
+    assert.equal((await post("apply", token, {profile, expected, ...body})).status, 400);
+  }
+  assert.deepEqual(writes, []);
+  const result = await (await post("apply", token, {profile, expected, scope: "iso"})).json();
+  assert.equal(result.status, "confirmed");
+  assert.deepEqual(result.rows.map(row => row.field), ["iso"]);
+  assert.deepEqual(writes, ["iso"]);
+  assert.equal((await post("apply", token, {profile, expected})).status, 409);
+});
