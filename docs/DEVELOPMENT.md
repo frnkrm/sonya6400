@@ -73,7 +73,7 @@ Neue Objektivdaten gegen die Regelberechnung prüfen. Kameramenüs und fotografi
 
 ## Lokale USB-Anwendung
 
-Unter Windows 11 x64 stehen für den nächsten Hardwareversuch der native Blenden- und der Zeittest bereit. [Einrichtung und Prüfablauf](WINDOWS-USB.md) Der optionale Profiltransfer über gphoto2 hat eine eigene [WSL-Einrichtung](WINDOWS-WSL.md). Die folgenden Befehle gelten für die native Linux-Variante. Der kleine Node-Dienst läuft auf dem Rechner am USB-Kabel. Er liefert die Browseroberfläche und führt gphoto2 lokal aus. Für die statische Website und den Profil-Export genügt weiterhin ein Webserver.
+Unter Windows 11 x64 sind die nativen Einzelschritte für ISO, Blende und Belichtungszeit an der α6400 geprüft. [Einrichtung und Prüfablauf](WINDOWS-USB.md) Der optionale Profiltransfer über gphoto2 hat eine eigene [WSL-Einrichtung](WINDOWS-WSL.md). Die folgenden Befehle gelten für die native Linux-Variante. Der kleine Node-Dienst läuft auf dem Rechner am USB-Kabel. Er liefert die Browseroberfläche und führt gphoto2 lokal aus. Für die statische Website und den Profil-Export genügt weiterhin ein Webserver.
 
 1. Unter Linux Node.js ab Version 22 und das Distributionspaket `gphoto2` bereitstellen. Auf Debian-Systemen ist das Paket über `apt install gphoto2` erhältlich.
 2. An der α6400 im Fotomodus unter **USB-Verbindung** die Option **PC-Fernbedienung (PC Remote)** wählen. Ein USB-Datenkabel anschließen. Andere Anwendungen wie Bildimport oder Imaging Edge, die gerade auf diese Kamera zugreifen, beenden. [Sony-Hilfe zur ILCE-6400](https://helpguide.sony.net/ilc/1810/v1/en/contents/TP0002279243.html)

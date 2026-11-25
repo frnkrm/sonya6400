@@ -19,7 +19,7 @@ Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Landschaft, Porträt,
 
 Lade unter Windows 11 x64 das aktuelle Projekt-ZIP herunter, entpacke es in einen neuen Ordner und starte **Start-Kamera.cmd**. Schließe Sony Imaging Edge Remote und lass Windows die Kamera verwalten. Öffne in der lokalen App **Kameraverbindung & Profil → USB am Computer**. Unter **Windows-Test** lässt sich je Versuch eine Einstellung lesen und im Fotomodus M um einen Schritt ändern. [Windows-Anleitung mit ZIP-Download](docs/WINDOWS-USB.md)
 
-Beim Gerätetest mit v10 bestätigten die automatische Rücklesung und die α6400 übereinstimmend **ISO 500** nach dem Schritt von ISO 400. Mit v11 bestätigten Kompass und Kameradisplay auch **f/9** nach dem Schritt ab f/8. Der Gerätetest für die **Belichtungszeit** (1/125 s → 1/160 s) steht noch aus. [Zuerst die Blende testen](docs/WINDOWS-USB.md#zuerst-die-blende-testen) · [Belichtungszeit separat testen](docs/WINDOWS-USB.md#belichtungszeit-separat-testen)
+Beim Gerätetest mit v10 bestätigten die automatische Rücklesung und die α6400 übereinstimmend **ISO 500** nach dem Schritt von ISO 400. Mit v11 stimmten Kompass und Kameradisplay auch bei den beiden weiteren Einzeltests überein. Die Blende wechselte von f/8 auf **f/9**, die Belichtungszeit von 1/125 s auf **1/160 s**. [Zuerst die Blende testen](docs/WINDOWS-USB.md#zuerst-die-blende-testen) · [Belichtungszeit separat testen](docs/WINDOWS-USB.md#belichtungszeit-separat-testen)
 
 ## Eine Empfehlung an die Kamera übertragen
 
