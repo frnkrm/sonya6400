@@ -6,7 +6,7 @@ Stand und Quellenabruf: **25.11.2026** · Zielmodell: **Sony ILCE-6400**.
 
 ## Zweck und Prüfgrenzen
 
-Diese Recherche beschreibt die Grundlage für eine spätere Übertragung von Website-Empfehlungen an die Kamera, beispielsweise für Landschaft. Sie dokumentiert Möglichkeiten und Grenzen; eine Kameraanbindung ist dadurch noch nicht implementiert.
+Diese Recherche dokumentiert die fachlichen Grundlagen der Übertragung. Den tatsächlichen Softwarestand sowie die offenen Geräteversuche beschreibt [Plan 003](../plans/003-kameraverbindung-und-presettransfer.md).
 
 - **Herstellerbeleg:** Sony dokumentiert eine Funktion ausdrücklich für die ILCE-6400.
 - **Projekt- oder Anbieterangabe:** Eine App beziehungsweise ein Projekt nennt Unterstützung. Das ist kein eigener Funktionstest.
@@ -60,7 +60,7 @@ Imaging Edge Mobile besitzt für bestimmte Kameras **Save and Apply Settings**. 
 
 Quellen: [Sony Imaging Edge Mobile — Modellübersicht](https://support.d-imaging.sony.co.jp/app/iemobile/en/instruction/index.php), [Sony — Save and Apply Settings](https://support.d-imaging.sony.co.jp/app/iemobile/en/instruction/5_1_save_apply.php).
 
-Eine dokumentierte Schnittstelle nach dem Muster **Website → Imaging Edge Mobile → vollständiges Kameraprofil** wurde in dieser Recherche nicht gefunden. Keine erfundenen App-Links, Dateiformate oder API-Endpunkte verwenden. Ein Website-eigenes JSON-Profil wäre zunächst nur ein Austauschformat unserer Software, keine von Sony importierbare Datei.
+Eine dokumentierte Schnittstelle nach dem Muster **Website → Imaging Edge Mobile → vollständiges Kameraprofil** wurde in dieser Recherche nicht gefunden. Keine erfundenen App-Links, Dateiformate oder API-Endpunkte verwenden. Das JSON-Profil der Website ist das Austauschformat für die lokale Anwendung.
 
 ## 3. Sony-Wege für Computer und eigene Software
 
@@ -137,7 +137,7 @@ Quelle: [bionz-x-research — WiFiSync und Prüfstand](https://github.com/ivica0
 
 ## 7. Abgeleiteter Entwicklungsweg
 
-**Ableitung, noch nicht umgesetzt:** Ein Button „Einstellungen an Kamera senden“ erscheint für unterstützte Einzelwerte realistisch. Als erster nachprüfbarer Weg bietet sich eine lokale Anwendung an, die über USB mit der Kamera kommuniziert. SimpleAlphaDroid und libgphoto2 liefern dafür unterschiedliche Ansatzpunkte.
+Aus der Recherche wurde für die erste Umsetzung eine lokale USB-Anwendung mit gphoto2/libgphoto2 ausgewählt. SimpleAlphaDroid bleibt ein eigener Android-Ansatz. Die folgenden Grundsätze beschreiben die Auswahl des Übertragungswegs.
 
 - Zuerst **ISO, Blende und Belichtungszeit** auslesen, ändern und zurücklesen. Weitere Werte erst nach bestätigter Fähigkeit ergänzen.
 - Kameramodus und verfügbare Objektivblenden berücksichtigen. Eine Empfehlung wie „A, f/8, Auto ISO“ darf nicht stillschweigend in ein anderes Belichtungskonzept umgewandelt werden.

@@ -36,16 +36,14 @@ Die elf Kameraregeltests prüfen unter anderem 864 ältere Auswahlkombinationen 
 - Die drei internen Kameraspeicher und die zusätzlichen Kartenplätze entsprechen der [Sony-Hilfe](https://helpguide.sony.net/ilc/1810/v1/de/contents/TP0002242297.html).
 - Die Projektlizenz ist offen.
 
-## Geplante Kameraanbindung
+## Kameraanbindung
 
-Die [Verbindungsrecherche](research/sony-a6400-verbindung-und-presettransfer.md) vom 25. November 2026 dokumentiert Sony-Fernsteuerung, NFC, USB, Community-Anwendungen sowie Grenzen vollständiger Profile und von Firmware-Erweiterungen. Quellenbelege und Anbieterangaben ersetzen keine eigene Kameraabnahme.
+Die statische Website exportiert ein eigenes JSON-Profil. Die lokale USB-Anwendung nutzt gphoto2, prüft die am Gerät angebotenen Einstellungen und meldet den zurückgelesenen Wert für ISO, Blende und feste Zeit. Die Simulation ist ausdrücklich als solche gekennzeichnet. Die Hardwareabnahme H-01 bis H-10 ist offen, einschließlich Erhalt nach Trennen beziehungsweise Neustart und Übernahme in MR. Die frühere Softwareabnahme für Landschaft, Werkzeuge und PWA ist oben dokumentiert. [Plan 003](plans/003-kameraverbindung-und-presettransfer.md#ergebnisprotokoll) · [Anleitung am Gerät](plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
 
-- **Vorhandene App:** Empfehlungen und Aufnahmehilfen; keine echte Kameraverbindung oder Übertragung.
-- **Plan 003 / C-01 bis C-08:** Zur Entwicklung aufgenommen; Software noch nicht implementiert. Einstieg sind ISO, Blende und Zeit über einen lokalen USB-Adapter mit Rücklesung.
-- **Hardware H-01 bis H-10:** Offen. Keine Kamera verbunden; Persistenz nach Trennen/Neustart und MR-Übernahme nicht bestätigt.
-- **Codex-Unterlagen:** [Plan 003](plans/003-kameraverbindung-und-presettransfer.md), [Architekturergänzung](ARCHITECTURE.md#geplante-optionale-kameraanbindung) und [autonomer Arbeitsauftrag](CODEX-AUFTRAG.md) vorhanden.
-- **Diese Ergänzung:** Dokumentation; die oben genannten Ergebnisse des bestehenden Funktionsstands bleiben erhalten. Es wurden dadurch keine neuen App-, Kamera- oder Produktionsprüfungen durchgeführt.
+Für den v5-Ausbau bestanden im gemeinsamen Lauf **45 von 45 Node-Tests und 28 von 28 Chromium-Tests**, jeweils ohne übersprungene Fälle. Beim abschließenden Nachtest der Übertragungsansicht bestanden alle drei Browserfälle, darunter ein zusätzlicher Fall für teilweise übernommene Werte. Damit umfasst die Suite 29 Browserfälle. Der Versionswechsel von v4 auf v5 mit Offline-Profilansicht ist abgedeckt. Beim kontrollierten Zugriff aus einer zweiten lokalen Origin war die Kamerasitzung für diese Seite gesperrt. Der JSON-Dateiweg blieb nutzbar. Der anschließend gestartete echte gphoto2-Adapter fand erwartungsgemäß keine angeschlossene Kamera.
 
 ## Veröffentlichung
 
-Am 25. November 2026 nahm GitHub den Push des geprüften Funktionsstands und seiner Dokumentation an. Ein anschließendes `git ls-remote origin refs/heads/main` bestätigte den [Stand cb45331](https://github.com/frnkrm/sonya6400/commit/cb4533190ffdf0eebfc95df0d23d61bd47c3e39d) auf `main`. Die Produktionsprüfung für OPS-01 ist offen. Beim Abruf der Produktionsdomain antwortete der Cloud-Proxy mit HTTP 403 auf CONNECT. Auch der Netlify-Status am GitHub-Commit war über die API aus dieser Umgebung gesperrt. Eine erfolgreiche Veröffentlichung auf Netlify muss anhand des zugehörigen Deploys und der Live-Fassung bestätigt werden. [Produktionsseite](https://sonyalpha6400.frnkrm.com/)
+Am 25. November 2026 bestätigte GitHub den Fast-Forward von `fb99192` auf den [Funktionscommit 3449a1f](https://github.com/frnkrm/sonya6400/commit/3449a1f2819b8b1b97279861746efd06050038bf). `git ls-remote origin refs/heads/main` bestätigte den Commit auf `main`.
+
+Der zugehörige Netlify-Deploy und die ausgelieferte Fassung sind offen (C-08/OPS-01). Beim Zugriff auf `sonyalpha6400.frnkrm.com` und beim Abruf des Commitstatus über `api.github.com` antwortete der Cloud-Proxy auch nach dem Push mit HTTP 403. Für die Live-Abnahme im Netlify-Deploy den veröffentlichten Git-Commit prüfen, die Startseite mit der Marke `app-release=v5` laden und unter **Kameraverbindung & Profil** eine Empfehlung exportieren. [Produktionsseite](https://sonyalpha6400.frnkrm.com/)

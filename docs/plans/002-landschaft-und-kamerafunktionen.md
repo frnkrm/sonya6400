@@ -26,7 +26,7 @@ Die Einzelkriterien unten dienen der Abnahme. Das Ergebnisprotokoll nennt die ta
 
 Der Ausgangsstand bot vier Motive an. Dieser Ausbau ergänzt einen durchgehenden Ablauf für Landschaften mit Bergen, Bäumen, Wald und Wasser und bezieht die tatsächliche Zoomstellung sowie die Eigenschaften des gewählten Objektivs ein.
 
-Ziel ist ein verständlicher Ablauf: Situation auswählen, passende Startwerte erhalten und erfahren, was am Probebild zu prüfen ist. Einstellungen werden erklärt; die Website steuert keine Kamera und kennt weder deren tatsächliche Belichtung noch ihre aktuelle Zoomstellung automatisch.
+Ziel ist ein verständlicher Ablauf: Situation auswählen, passende Startwerte erhalten und erfahren, was am Probebild zu prüfen ist. Einstellungen werden erklärt; der Kompass verwendet die manuell gewählten Angaben. Die spätere optionale USB-Übertragung beschreibt [Plan 003](003-kameraverbindung-und-presettransfer.md).
 
 Die Verteilung auf Quellen, Regeln, Oberfläche und Offline-Cache beschreibt die [Architektur](../ARCHITECTURE.md).
 

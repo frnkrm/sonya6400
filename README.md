@@ -15,9 +15,11 @@ Eine deutschsprachige Web-App mit Kamera-Empfehlungen für Landschaft, Porträt,
 - Teilbare Einstellungslinks und eine als PNG speicherbare Karte.
 - Installation als Web-App und Offline-Nutzung nach erfolgreichem Laden der benötigten Dateien.
 
-Die App zeigt Empfehlungen. Sie steuert keine Kamera und überträgt keine Einstellungen an die α6400.
+## Eine Empfehlung an die Kamera übertragen
 
-Eine optionale Verbindung ist in [Plan 003](docs/plans/003-kameraverbindung-und-presettransfer.md) vorbereitet: zunächst ISO, Blende und Belichtungszeit über eine lokale USB-Anwendung übertragen und zurücklesen. Die [Recherche](docs/research/sony-a6400-verbindung-und-presettransfer.md) erklärt WLAN, Imaging Edge, NFC, Community-Projekte und die noch offenen Hardwareprüfungen. **Geplant, noch nicht implementiert.**
+Wähle zuerst dein Motiv und die Aufnahmebedingungen. Die optionale Verbindung zeigt, welche Werte für ISO, Blende und Belichtungszeit im gewählten Modus übertragen werden können. Die Rückmeldung nennt den pro Feld zurückgelesenen Wert. Fokus, Stabilisierung und weitere manuelle Schritte bleiben im Kompass sichtbar.
+
+Öffne im Kompass **Kameraverbindung & Profil** und wähle **Empfehlung als JSON speichern**. Öffne die lokale Anwendung auf dem Linux-Rechner am USB-Kabel, wähle **Profil aus Datei laden** und verbinde deine α6400 im USB-Modus **PC-Fernbedienung**. Stelle die Verbindung in der Oberfläche auf **USB am Computer** und lies die Istwerte ein. Prüfe die Vorschau und klicke auf **Einstellungen übertragen**. Zum Ausprobieren ohne Kamera gibt es eine gekennzeichnete Simulation. Die Prüfung an einem physischen Gerät steht aus. [Lokale Einrichtung](docs/DEVELOPMENT.md#lokale-usb-anwendung) · [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
 
 ## Eine Landschaftsaufnahme vorbereiten
 
@@ -58,7 +60,7 @@ Dann **[http://localhost:8080/](http://localhost:8080/)** öffnen. Datei bearbei
 | [Plan 003: Kameraverbindung und Presetübertragung](docs/plans/003-kameraverbindung-und-presettransfer.md) | C-01 bis C-08: Übertragungsprofil, USB-Adapter, Rücklesung, Oberfläche und Abnahme |
 | [Kamera- und Objektivrecherche](docs/research/sony-a6400-kamera-objektive.md) | Herstellerdaten, Aufnahmebeispiele, Grenzen und Quellen |
 | [Verbindung und Presettransfer](docs/research/sony-a6400-verbindung-und-presettransfer.md) | Belegte Sony-/Community-Wege und offene Hardwareprüfungen H-01 bis H-10 |
-| [Codex-Auftrag mit Startprompt](docs/CODEX-AUFTRAG.md) | Den nächsten Entwicklungslauf autonom, gezielt und mit ehrlichem Prüfstand ausführen |
+| [Ursprünglicher Implementierungsauftrag](docs/CODEX-AUFTRAG.md) | Ausgangsauftrag der USB-Erweiterung |
 | [Planvorlage](docs/plans/TEMPLATE.md) | Neue Ideen in umsetzbare Vorhaben übersetzen |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Dateien, Funktionen, Zustand, Wetter und Service Worker |
 | [DEVELOPMENT](docs/DEVELOPMENT.md) | Einrichtung, Arbeitsablauf, gezielte Prüfungen und Netlify-Veröffentlichung |

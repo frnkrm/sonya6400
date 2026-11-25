@@ -1,6 +1,6 @@
 # Architektur
 
-Die App läuft vollständig im Browser. Die statischen Dateien im Repository-Stamm bilden die Netlify-Site und den lokalen Entwicklungsstand. Die α6400, das Objektiv und deren Einstellungen werden vom Benutzer gewählt. Die Website benötigt weder eine Kameraverbindung noch ein Backend.
+Kompass, Werkzeuge, Simulation und Profil-Export laufen im Browser. Die statischen Dateien im Repository-Stamm bilden die Netlify-Site. Für eine USB-Verbindung liefert ein lokaler Node-Dienst dieselbe Bedienoberfläche auf dem Rechner am Kamerakabel aus.
 
 ## Einstieg und Verantwortlichkeiten
 
@@ -44,21 +44,46 @@ Für die Lichtschätzung kann der Browser nach Standortfreigabe auf drei Nachkom
 
 Das Manifest verwendet relative Start- und Scope-Adressen. Der Service Worker sichert die Anwendungsdateien für den Offline-Start. Die Dateiliste und Cache-Version stehen im Worker. Die zugehörige Marke `app-release` im HTML muss mit der Version übereinstimmen. Pflichtdateien werden vor Aktivierung auf HTTP-Status und Typ geprüft. Nur erfolgreiche passende HTML-Antworten für den jeweiligen App-Einstieg können den Offline-Stand aktualisieren. Bei einem Wechsel von einer älteren Cache-Fassung navigiert der Worker die bereits geöffneten App-Fenster erneut. Bei einer neuen Runtime gehören die Prüfung eines frischen Profils und der Versionswechsel eines bereits geöffneten Clients zur Abnahme. Die Entwicklungsanleitung beschreibt die Testbefehle und die getrennte Kontrolle auf der Produktionsdomain. [Entwicklung und Veröffentlichung](DEVELOPMENT.md)
 
-## Geplante optionale Kameraanbindung
+## Optionale Kameraanbindung
 
-**Status: geplant, noch nicht im Runtime-Code vorhanden.** Anforderungen und Abnahme stehen in [Plan 003](plans/003-kameraverbindung-und-presettransfer.md), Belege und Grenzen in der [Verbindungsrecherche](research/sony-a6400-verbindung-und-presettransfer.md).
+Die eigentliche Aufnahmeabsicht entsteht bei der gemeinsamen Berechnung in `camera.js`. Neben den deutschen Anzeigetexten liefert die Regel strukturierte Zielwerte. Die gespeicherten Einstellungen des Kompasses und seine Einstellungslinks beschreiben weiterhin die gewünschte Aufnahme. Die Rücklesung einer angeschlossenen Kamera erscheint separat als Istwert.
 
-| Komponente | Geplante Verantwortung |
-| --- | --- |
-| Bestehende Empfehlungslogik in `camera.js` | Gemeinsame Aufnahmeabsicht und strukturierte Zielwerte liefern; feste Werte von Auto-Modi und Empfehlungen unterscheiden |
-| Optionales Verbindungsmodul | Fähigkeiten und Istwerte anzeigen, explizite Übertragung starten, Rücklesung und Teilergebnisse auswerten |
-| Transportadapter | Einheitliche Schnittstelle für Simulation und echte lokale Verbindung; Fähigkeiten zur Laufzeit ermitteln |
-| Lokale Anwendung | Über gphoto2/libgphoto2 mit der α6400 per USB kommunizieren; validiertes Website-Profil importieren |
+### Profil für Export und Import
 
-- `camera.js` ist weiterhin die fotografische Regelbasis, kein bereits vorhandener USB-Treiber. Eine neue Verbindungsschicht soll daraus keine zweite unabhängige Empfehlungslogik machen.
-- Die Website bleibt ohne Verbindung als statische Offline-Hilfe nutzbar. Die lokale Anwendung läuft auf dem Nutzergerät; Netlify übernimmt keine USB-Kommunikation.
-- Anzeige-/Hinweistexte sind keine Maschinenbefehle. Ein Feld wie „1/125 s oder kürzer“ oder ein Auto-ISO-Bereich darf nicht als fester Zeit-/ISO-Wert interpretiert werden.
-- Istwerte und gewünschte Empfehlungen getrennt halten. Eine Übertragung gilt erst nach Rücklesung pro Wert als bestätigt; sie ist noch kein Nachweis dauerhafter Speicherung oder MR-Registrierung.
-- Der tatsächliche Zugriff der HTTPS-Website auf einen lokalen Dienst muss im Zielbrowser geprüft werden. Ein lokales Projekt mit Browseroberfläche beweist diese Verbindung noch nicht. Profil-Export/-Import ist der vorgesehene Rückfallweg.
-- Ein lokaler Dienst benötigt begrenzte Bindung und Zugriffe. Browserfreigaben respektieren; keine allgemein offene Schreibschnittstelle und keine Zugangsdaten in geteilten Profilen, URLs oder gecachten Dateien ablegen.
-- Neue Simulations-/USB-Module werden erst bei ihrer Implementierung Teil des Dateibaums. Dateinamen, Plattform, Abhängigkeiten und Befehle dann konkret dokumentieren. Firmware- und Service-Modus-Eingriffe gehören nicht zu dieser Architektur.
+[transfer-profile.js](../transfer-profile.js) prüft die JSON-Struktur beim Import. Version 1 enthält `version`, `model`, `mode`, `lens`, `focalMm`, `aperture`, `iso` und `shutter`. Die Brennweite in Millimetern stammt aus der manuellen Objektivauswahl. Das Modell ist `ILCE-6400`, der Modus A oder M. Unbekannte Felder, Profilversionen und ungültige Zahlen führen zu einer Fehlermeldung.
+
+| Aufnahmewunsch | Maschinenlesbare Angabe | Wirkung |
+| --- | --- | --- |
+| Feste ISO | `iso.kind = "fixed"`, `value` | Konkreter Empfindlichkeitswert |
+| Auto ISO | `iso.kind = "auto"`, `min` und `max` | Automatik und gewünschte Grenzen sind eigenständige Angaben |
+| Feste Zeit in M | `shutter.kind = "fixed"`, `seconds` | Zielzeit in Sekunden |
+| Zeitstrategie in A | `shutter.kind = "metered"` oder `"minAuto"` mit `seconds` | Kamera misst die Zeit. Bei Auto ISO kann eine Umschaltschwelle hinzukommen |
+
+Ein vollständiges Beispiel für weite Berge aus der Hand mit dem Tamron B070:
+
+```json
+{
+  "version": 1,
+  "model": "ILCE-6400",
+  "mode": "A",
+  "lens": "tam",
+  "focalMm": 17,
+  "aperture": 8,
+  "iso": { "kind": "auto", "min": 100, "max": 3200 },
+  "shutter": { "kind": "minAuto", "seconds": 0.008 }
+}
+```
+
+0,008 Sekunden entsprechen 1/125 s. Diese Schwelle und die beiden ISO-Grenzen sind manuelle Schritte. Die laufende Verbindung kann Auto ISO als einzelnen Zielwert anfordern, wenn das Gerät diese Wahl anbietet. Blendenzahl und Brennweite werden gegen das gewählte Objektivprofil geprüft. Für den Schreibvorgang zählen zusätzlich die aktuell vom Gerät angebotenen Werte. Unterstützt die Verbindung eine Einstellung nicht, bleibt sie als manueller Schritt sichtbar.
+
+### Verbindungsablauf
+
+[transfer-ui.js](../transfer-ui.js) zeigt die Vorschau für die aktuelle Empfehlung oder ein importiertes Profil. [transfer-engine.js](../transfer-engine.js) vergleicht das Ziel mit den aktuellen Fähigkeiten und Istwerten des Adapters. Der Modus bleibt eine manuelle Voraussetzung. Bereits passende und nicht schreibbare Felder werden in der Vorschau gekennzeichnet. Beim Übertragen erfolgen Schreibversuch und Rücklesung pro Feld nacheinander. Ablehnung, Abweichung und fehlende Bestätigung erscheinen in den Teilergebnissen.
+
+[local/server.js](../local/server.js) bedient die Loopback-Origin. Nach Sitzungsaufbau benötigt eine USB-Aktion die dazugehörige Sitzung und den lokalen Ursprung. Zum Schreiben ist zusätzlich die zu dieser Sitzung gehörende gelesene Vorschau nötig. Eine laufende Kameraaktion sperrt konkurrierende Zugriffe. [local/gphoto.js](../local/gphoto.js) startet gphoto2 mit getrennten Argumenten und wertet Modell, Modus, aktuelle Werte und verfügbare Optionen aus den tatsächlich gemeldeten Konfigurationseigenschaften aus.
+
+### Zwei Verbindungswege
+
+- Die gekennzeichnete **Simulation** liefert kontrollierte Fähigkeiten und Istwerte im Browser. Ein Profil lässt sich auf diese Weise auch offline ausprobieren.
+- Für **USB** startet der Benutzer auf dem Linux-Rechner [local/server.js](../local/server.js). Dieser Dienst hört auf Loopback und liefert die Oberfläche auf derselben Origin wie die lokale API. Die Sitzung ist lokal gebunden. Der USB-Adapter liest die gphoto2-Konfiguration des erkannten Geräts und gleicht Sollwert, angebotene Auswahl und Rücklesung je Feld ab.
+- Die öffentliche Website übergibt ihre Empfehlung als JSON-Datei. Zum tatsächlichen Schreiben wird die Datei auf dem Rechner am Kabel eingelesen, geprüft und bewusst übertragen. Die Verbindungshilfe deckt auch Sonys getrennte WLAN-/NFC-Verbindung über Imaging Edge Mobile ab. [Einrichtung](DEVELOPMENT.md#lokale-usb-anwendung) · [Verbindungsrecherche](research/sony-a6400-verbindung-und-presettransfer.md)

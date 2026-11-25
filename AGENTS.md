@@ -41,8 +41,8 @@ Diese Hinweise gelten für das gesamte Projekt. Konkrete aktuelle Nutzeraufträg
 
 ## Kameraverbindung und Übertragungsauftrag
 
-- Für die Kameraanbindung [Plan 003](docs/plans/003-kameraverbindung-und-presettransfer.md) und die [Verbindungsrecherche](docs/research/sony-a6400-verbindung-und-presettransfer.md) verwenden. Der vollständige nächste Arbeitsauftrag steht in [CODEX-AUFTRAG](docs/CODEX-AUFTRAG.md).
-- Die aktuelle App überträgt noch keine Einstellungen. Herstellerbelege, Community-Angaben, Simulation und eigene Hardwareprüfung getrennt führen.
+- Für die Kameraanbindung [Plan 003](docs/plans/003-kameraverbindung-und-presettransfer.md) und die [Verbindungsrecherche](docs/research/sony-a6400-verbindung-und-presettransfer.md) verwenden. Die erwarteten Nachweise am Gerät stehen im [Hardwareprotokoll](docs/plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll).
+- Die statische Website liefert Empfehlungen und JSON-Profile. USB-Schreibvorgänge gehören in die ausdrücklich gestartete lokale Anwendung. Herstellerbelege, kontrollierte Softwaretests und eigene Hardwareprüfungen getrennt führen.
 - Nur tatsächlich unterstützte Werte schreiben und anschließend zurücklesen. Auto ISO, feste ISO, Belichtungszeit und ISO AUTO Min. SS nicht gleichsetzen; Empfehlungen aus der gemeinsamen Regelbasis ableiten.
 - Fehlende Kamera oder externer Zugriff: unabhängig umsetzbare Software fertigstellen, konkrete Hardwareprüfung offen dokumentieren. Keine erfundenen Erfolge und keinen reinen Dummy als fertigen USB-Adapter ausgeben.
 - Der Übertragungsauftrag umfasst keine Firmwareänderung und keinen Service-Modus. Browser- und Geräteberechtigungen bleiben wirksam; keine Zugriffsregeln oder Branchschutz umgehen.

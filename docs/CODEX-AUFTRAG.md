@@ -1,8 +1,8 @@
-# Codex-Auftrag — Kameraanbindung autonom umsetzen
+# Ursprünglicher Implementierungsauftrag zur Kameraanbindung
 
 Stand: **25.11.2026** · Repository: [frnkrm/sonya6400](https://github.com/frnkrm/sonya6400) · Zielbranch: `main`.
 
-Dieses Dokument ist der vollständige Arbeitsauftrag für den nächsten Codex-Lauf, wenn der Nutzer ihn startet. Das Speichern dieser Datei ist keine Implementierung der geplanten Funktionen.
+Dieser Text dokumentiert den Auftrag zum Ausbau auf Basis von `fb99192`. Der Umsetzungs- und Prüfstand steht in [Plan 003](plans/003-kameraverbindung-und-presettransfer.md#ergebnisprotokoll). Der Startprompt am Ende ist als Teil des damaligen Auftrags erhalten.
 
 ## Auftrag und Lesereihenfolge
 

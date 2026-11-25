@@ -35,7 +35,7 @@ py -m http.server 8080 --bind 127.0.0.1
 
 ## Testwerkzeuge
 
-Für den lokalen Server genügt Python 3. Die Regeltests laufen mit dem integrierten Test-Runner von Node.js. Für die Browsertests sind Python mit Playwright und Chromium erforderlich. Die Testwerkzeuge dienen ausschließlich der Entwicklung.
+Für den statischen Testserver genügt Python 3. Regel-, Adapter- und Diensttests laufen mit dem integrierten Test-Runner von Node.js. Für die Browsertests sind Python mit Playwright und Chromium erforderlich. Die Testwerkzeuge dienen ausschließlich der Entwicklung.
 
 Aus dem Repository-Stamm:
 
@@ -44,7 +44,7 @@ node --test tests/*.test.js
 python3 -m unittest discover -s tests -p '*.py' -v
 ```
 
-Die Browsertests nutzen einen lokalen Server und isolierte Browserprofile. Für den Update-Test braucht der Checkout das Git-Objekt `678e440489266b9fb514d9688f4d0f66c5a5543e` mit dem alten v3-Client. Bei einer flachen Kopie die Historie dieses Commits ergänzen. Die geprüfte Cloud-Umgebung verwendet Node 24.22.3, Python 3.12, Playwright 1.62.0 und Chromium 156. Die PWA-Prüfung nutzt die DevTools-Kommandos `PWA.install` und `PWA.launch` des vollständigen Chromium-Browsers. `CHROMIUM_PATH` kann auf dessen Programmdatei zeigen.
+Die Browsertests nutzen einen lokalen Server und isolierte Browserprofile. Für die Update-Tests braucht der Checkout die Git-Objekte `678e440489266b9fb514d9688f4d0f66c5a5543e` (v3) und `1aa7cd744d18c9460127836e7d678ce6670a92ee` (v4). Bei einer flachen Kopie die Historie bis zu diesen Commits ergänzen. Die geprüfte Cloud-Umgebung verwendet Node 24.22.3, Python 3.12, Playwright 1.62.0 und Chromium 156. Die PWA-Prüfung nutzt die DevTools-Kommandos `PWA.install` und `PWA.launch` des vollständigen Chromium-Browsers. `CHROMIUM_PATH` kann auf dessen Programmdatei zeigen.
 
 Auf einem Entwicklungsrechner ohne Playwright kann eine virtuelle Python-Umgebung außerhalb des Repositorys verwendet werden:
 
@@ -71,18 +71,25 @@ Bestehende Schlüssel für `localStorage` und das Linkformat `#s=motiv.licht.bew
 
 Neue Objektivdaten gegen die Regelberechnung prüfen. Kameramenüs und fotografische Aussagen anhand passender Herstellerquellen kontrollieren; die vorhandenen Texte sind keine unabhängige fachliche Verifikation.
 
-## Nächster Codex-Lauf: Kameraverbindung
+## Lokale USB-Anwendung
 
-Der [vollständige Codex-Auftrag](CODEX-AUFTRAG.md) verweist auf [Plan 003](plans/003-kameraverbindung-und-presettransfer.md) und die [Verbindungsrecherche](research/sony-a6400-verbindung-und-presettransfer.md). Der aktuelle Stand enthält die bereits abgenommenen Pläne 001 und 002; diese nicht erneut implementieren.
+Der kleine Node-Dienst läuft auf dem Rechner am USB-Kabel. Er liefert die Browseroberfläche und führt gphoto2 lokal aus. Für die statische Website und den Profil-Export genügt weiterhin ein Webserver.
 
-1. Den aktuellen Remote-Stand und betroffene Module prüfen. Bestehende Quellen und Tests gezielt wiederverwenden.
-2. Profilsemantik, Fähigkeiten und Übertragungslogik mit erkennbarer Simulation aufbauen; anschließend einen echten ausführbaren USB-Adapter ergänzen. Keine bloße Simulation als fertige Kameraverbindung ausweisen.
-3. ISO, Blende und Zeit anhand tatsächlicher Fähigkeiten schreiben und zurücklesen. Modus, Auto ISO, Zeitgrenzen und Objektivgrenzen getrennt behandeln.
-4. Website und lokalen Verbindungsweg zusammen prüfen. Wenn direkter Browserzugriff blockiert ist, den validierten Profilimport als Rückfallweg fertigstellen und dokumentieren.
-5. Hardwareprüfungen H-01 bis H-10 aus der Recherche bei verfügbarer Kamera protokollieren. Ohne Gerät Softwarearbeiten abschließen; Hardwareabnahme und Persistenz bleiben offen.
-6. C-01 bis C-08, relevante Projektdokumentation, Commit und tatsächlichen Veröffentlichungsstand nachführen. Keine zusätzliche Freigaberunde für bereits beauftragte Arbeit einführen; technische Zugriffsgrenzen respektieren.
+1. Unter Linux Node.js ab Version 22 und das Distributionspaket `gphoto2` bereitstellen. Auf Debian-Systemen ist das Paket über `apt install gphoto2` erhältlich.
+2. An der α6400 im Fotomodus unter **USB-Verbindung** die Option **PC-Fernbedienung (PC Remote)** wählen. Ein USB-Datenkabel anschließen. Andere Anwendungen wie Bildimport oder Imaging Edge, die gerade auf diese Kamera zugreifen, beenden. [Sony-Hilfe zur ILCE-6400](https://helpguide.sony.net/ilc/1810/v1/en/contents/TP0002279243.html)
+3. Im Repository-Stamm zunächst die Werkzeugversion und Erkennung prüfen und dann die lokale Anwendung starten:
 
-**Prüfumfang:** Neue gezielte Tests sollen Profilvalidierung, A-/M-Semantik, Auto ISO, unzulässige Werte, Verbindungsabbruch, Rückleseabweichung, Teilerfolg und die betroffenen Browserabläufe abdecken. Bei einem lokalen Dienst zusätzlich unerlaubte Zugriffe prüfen. Bestehende Testbefehle oben weiterverwenden; konkrete Adapter-/Hardwarebefehle erst ergänzen, sobald sie tatsächlich implementiert und ausprobiert sind. Keine Kamera-Firmware ändern oder Service-Modus-Aktionen zur Einrichtung voraussetzen.
+```bash
+node --version
+gphoto2 --version
+gphoto2 --auto-detect
+node local/server.js
+```
+
+4. Im Browser `http://127.0.0.1:8765/` öffnen. Empfehlung auswählen oder die zuvor exportierte JSON-Datei importieren. Unter **Kameraverbindung & Profil** den Eintrag **USB am Computer** wählen, die Kamera lesen und die angebotenen Zielwerte und manuellen Schritte prüfen. Falls ein anderer Modus nötig ist, das Moduswahlrad umstellen und die Fähigkeiten neu einlesen.
+5. **Einstellungen übertragen** bewusst anklicken. Bei einem Teilerfolg die einzeln zurückgelesenen Werte prüfen. Nach Verbindungsverlust die Kamera neu verbinden und aktuelle Istwerte lesen. `Strg+C` beendet den Dienst.
+
+Der Profilweg von der Produktionswebsite führt über einen Dateidownload und den Import in die Oberfläche auf dem USB-Rechner. Mit der ausdrücklich gewählten Simulation lässt sich der Ablauf auch ohne Kamera erproben. Geprüfte Referenz für den lokalen Dienst ist Debian GNU/Linux 13 (amd64) mit gphoto2 2.5.28 und libgphoto2 2.5.31. Ein generischer Blendenbereich wie 0–655,35 reicht zur Freigabe einer Zielblende nicht aus. Wenn das Gerät keine passenden Wahlmöglichkeiten liefert, die Blende am Objektiv beziehungsweise Kamerarad einstellen. Hardwareprüfungen unter Linux sowie die Prüfung auf macOS, Windows und Mobilgeräten stehen aus. Die H-Fälle benennen zu jedem echten Versuch die erwartete Beobachtung. [Plan 003](plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
 
 ## Prüfcheckliste für Funktionsänderungen
 
