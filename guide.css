@@ -1,0 +1,51 @@
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.9rem 1rem;
+  margin: 1rem 0 0;
+}
+.guide-field { min-width: 0; }
+.guide-field[hidden] { display: none; }
+.guide-field label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--mu);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.guide-field input,
+.guide-field select {
+  display: block;
+  width: 100%;
+  min-height: 46px;
+  padding: 0.6rem;
+  border: 1px solid #59606c;
+  border-radius: 10px;
+  background: var(--s2);
+  color: var(--tx);
+  color-scheme: dark;
+  font: inherit;
+}
+.guide-field input:read-only {
+  border-color: var(--ln);
+  color: var(--mu);
+}
+.guide-hint {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--mu);
+  font-size: 0.82rem;
+}
+#guide-details { overflow-wrap: anywhere; }
+#guide-details p { margin: 0 0 0.75rem; }
+#guide-sources { padding-inline-start: 1.2rem; }
+#guide-sources a { color: var(--or2); }
+#guide-checklist input:checked + span {
+  color: var(--mu);
+  text-decoration: line-through;
+}
+.guide-error {
+  display: block;
+  color: var(--wa);
+  font-size: 0.85rem;
+}

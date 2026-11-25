@@ -1,0 +1,22 @@
+.photo-workbench { color-scheme: dark; }
+.photo-workbench section { margin-top: 1.25rem; }
+.photo-workbench label { display: block; margin: .8rem 0; color: var(--tx); }
+.photo-workbench input:not([type=checkbox]), .photo-workbench select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  margin-top: .3rem;
+  padding: .55rem .7rem;
+  border: 1px solid #616678;
+  border-radius: .6rem;
+  background: var(--s2);
+  color: var(--tx);
+  font: inherit;
+}
+.photo-workbench .pt-check { display: flex; align-items: center; gap: .6rem; min-height: 44px; }
+.pt-check input { width: 1.25rem; height: 1.25rem; accent-color: var(--or); }
+.photo-workbench output { display: block; margin: .6rem 0; color: var(--tx); }
+.photo-workbench output:empty, .photo-workbench [hidden] { display: none; }
+.photo-workbench .pt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: 0 .8rem; }
+.photo-workbench .pt-sources a { color: var(--or2); }
