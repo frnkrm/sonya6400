@@ -70,6 +70,8 @@ Die α6400-Hilfe beschreibt Fernaufnahmen und Einstellungsänderungen vom Comput
 
 Quelle: [Sony α6400 — Imaging Edge](https://helpguide.sony.net/ilc/1810/v1/en/contents/TP0002279243.html).
 
+Beim Vergleich mit der angeschlossenen ILCE-6400 unter Windows waren in der geprüften Remote-Ansicht keine eigenen Bedienelemente für Auto-ISO-Minimum, Auto-ISO-Maximum oder ISO AUTO Min. VS erkennbar. Ob diese drei Werte über USB beschreibbar sind, bleibt offen. Kompass v12 zeigt die Profilvorgaben dafür als manuelle Schritte an. [Gerätetest H-03](../plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll)
+
 ### Camera Remote Command und Camera Remote SDK unterscheiden
 
 - **Camera Remote Command** führt die ILCE-6400 ausdrücklich als unterstütztes Modell. Es verwendet Sony-Erweiterungen des PTP-Protokolls.
