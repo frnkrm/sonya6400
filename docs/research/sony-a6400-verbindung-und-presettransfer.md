@@ -1,6 +1,6 @@
 # Fachreferenz — α6400 verbinden und Einstellungen übertragen
 
-Stand und Quellenabruf: **25.11.2026** · Zielmodell: **Sony ILCE-6400**.
+Stand: **26.11.2026** · Zielmodell: **Sony ILCE-6400**.
 
 [Überblick](../../README.md) · [Roadmap](../ROADMAP.md) · [Bestandsaufnahme](../STATUS.md) · [Kamera und Objektive](sony-a6400-kamera-objektive.md) · [Plan 003](../plans/003-kameraverbindung-und-presettransfer.md) · [Codex-Auftrag](../CODEX-AUFTRAG.md)
 
@@ -117,6 +117,20 @@ Das bestätigt den Austausch eines auf einer α6400 erzeugten Aufnahmeprofils. E
 
 Quelle: [Sony α6400 — Registering and recalling sets of frequently used camera settings](https://support.d-imaging.sony.co.jp/support/tutorial/ilc/ilce-6400/en/15.php).
 
+### Machbarkeit unterwegs mit einem Android-Handy
+
+| Gewünschtes Ergebnis | Was dafür spricht | Was noch fehlt |
+| --- | --- | --- |
+| Per Kamera-WLAN Aufnahmeparameter einstellen | Die Verbindung zwischen Imaging Edge Mobile und der verwendeten α6400 wurde bestätigt. Sony führt für dieses Modell ISO, Blende und Zeit auf. | Für ein unterwegs erstelltes Preset wäre der kürzeste Weg, die gewünschten Werte in Imaging Edge einzustellen, die Verbindung zu beenden und sie über **Speicher** an der Kamera zu registrieren. Erhalt der Werte und anschließenden MR-Abruf an diesem Gerät prüfen. |
+| Ein Kompass-JSON am Handy öffnen und unterstützte Werte über USB übernehmen | SimpleAlphaDroid v0.0.1 nennt die α6400 als vom Autor getestet. Die App setzt Android 11 oder neuer und USB-Host voraus. Ihr eigener Browserclient liest den Kamerastatus und fordert einzelne Belichtungsschritte an. | Als Kandidat für einen späteren lokalen Android-Import zuerst auf **demselben Handy** mit Datenkabel einen Wert lesen, einen Schritt ändern und zurücklesen. Ein Import bräuchte Profilvorschau, Modusprüfung und Rücklesung je Feld. Zugriff aus der öffentlichen Kompass-Seite und MR-Registrierung sind offen. |
+| Einen gespeicherten Platz vom Handy aus wiederherstellen | Die drei internen Plätze **1–3** und die vier Kartenplätze **M1–M4** haben unterschiedliche Speicherorte. Ein Android-Handy mit USB-C-Kartenleser könnte originale Kartendateien sichern und unverändert zurückkopieren. | Dateipfad, Zahl der beteiligten Dateien und Zuordnung zu M1–M4 sind für diese α6400 ungeklärt. Ein gemeinsamer Speicher für mehrere Slots ist möglich. Ein Rückrufversuch mit einer zweiten Testkarte muss zeigen, ob ein einzelner Platz wiederherstellbar ist. |
+
+Für die internen Plätze 1–3 ergab sich aus den ausgewerteten Sony-Unterlagen, der SimpleAlphaDroid-Schnittstelle und dem modellspezifischen libgphoto2-Konfigurationsdump kein belegter Fernbefehl zum Registrieren oder Überschreiben. Auch die Erzeugung eines neuen Sony-Kartenprofils aus Kompass-JSON bleibt offen. Ein erfolgreicher Rückruf einer unverändert kopierten Sony-Datei würde ausschließlich die Wiederverwendung eines zuvor an der Kamera registrierten Profils belegen. Auto-ISO-Grenzen und ISO AUTO Min. VS sind beim Vergleich gesondert am Kameramenü abzulesen.
+
+Quellen für die Mobil- und Karteneinordnung. [Sony-Speicheranleitung](https://helpguide.sony.net/ilc/1810/v1/de/contents/TP0002242297.html) · [Sony-Funktionsliste für Imaging Edge Mobile](https://support.d-imaging.sony.co.jp/www/cscs/pmm/page2.php?abil=32100&area=eu&lang=en&mdl=ILCE-6400) · [SimpleAlphaDroid v0.0.1](https://github.com/qkhanhpro/simplealphadroid/tree/v0.0.1) · [Android-Status und Belichtungsschritte](https://github.com/qkhanhpro/simplealphadroid/blob/v0.0.1/app/src/main/java/com/simplealphadroid/Web.java#L281-L318) · [libgphoto2-Gerätedump](https://github.com/gphoto/libgphoto2/blob/6d5c61ef7687b74fe792e4aeae7fc40f2ad42d88/camlibs/ptp2/cameras/sony-a6400.txt)
+
+Am 26.11.2026 wurden der veröffentlichte Android-Quellstand und der α6400-Konfigurationsdump eingesehen. Die Sony-Modellangaben stammen aus der bestehenden Quellenprüfung. Der erneute Abruf der Sony-Seiten war aus der Arbeitsumgebung gesperrt (HTTP 403). Der [Prüfplan für Android und MR](../plans/003-kameraverbindung-und-presettransfer.md#machbarkeitsprüfung-mit-android-und-mr) beschreibt die offenen Versuche.
+
 ## 6. Kamera-Apps, Service-Modus und Firmwareforschung
 
 ### Klassische Kamera-Apps
@@ -151,7 +165,7 @@ Aus der Recherche wurde für die erste Umsetzung eine lokale USB-Anwendung mit g
 
 ## 8. Konkrete offene Prüfungen an der Kamera
 
-Alle folgenden Punkte sind **offen**. Zu jedem späteren Test gehören Datum, Kamerafirmware, Objektiv, Aufnahme-/Fokusmodus, Betriebssystem, verwendete Softwareversion sowie beobachtetes Ergebnis.
+Die Tabelle beschreibt die Prüfziele. Bereits ausgeführte Windows-Versuche und die je Verbindung offenen Punkte stehen im [Hardwareprotokoll](../plans/003-kameraverbindung-und-presettransfer.md#hardwareprotokoll). Zu jedem späteren Test gehören Datum, Kamerafirmware, Objektiv, Aufnahme-/Fokusmodus, Betriebssystem, verwendete Softwareversion sowie beobachtetes Ergebnis.
 
 | ID | Prüfung | Erforderlicher Nachweis |
 | --- | --- | --- |
