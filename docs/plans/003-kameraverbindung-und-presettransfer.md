@@ -39,9 +39,9 @@ Die Belege und offenen Fragen stehen in der [Fachreferenz](../research/sony-a640
 
 ### Machbarkeitsprüfung mit Android und MR
 
-Stand 26.11.2026. Ziel ist der Einsatz unterwegs mit einem USB-C-Android-Handy und einer ILCE-6400, ohne Computer. Die WLAN-Verbindung mit Imaging Edge Mobile ist auf diesem Gerät bestätigt. Die folgenden Versuche sind geplant. Für eine automatische MR-Registrierung ist bisher kein unterstützter Befehl bekannt. [Quellen und Grenzen](../research/sony-a6400-verbindung-und-presettransfer.md#machbarkeit-unterwegs-mit-einem-android-handy)
+Stand 26.11.2026. Ziel ist der Einsatz unterwegs mit einem USB-C-Android-Handy und einer ILCE-6400, ohne Computer. Der WLAN-Versuch mit Imaging Edge Mobile ist bis zum Trennen der Verbindung durchgeführt. MR-Registrierung und Abruf stehen aus. Für eine automatische MR-Registrierung ist bisher kein unterstützter Befehl bekannt. [Quellen und Grenzen](../research/sony-a6400-verbindung-und-presettransfer.md#machbarkeit-unterwegs-mit-einem-android-handy)
 
-**1. Mit dem vorhandenen WLAN beginnen.** Kamera auf Fotomodus M stellen, Imaging Edge Mobile wie gewohnt verbinden und die sichtbaren Werte für ISO, Blende und Zeit mit dem Kameradisplay vergleichen. Für diesen ersten Schritt genügt Ablesen. Festhalten, welche drei Bedienelemente auf dem Handy angeboten werden.
+**1. Ablesen und ISO über WLAN ändern.** In M zeigten Imaging Edge Mobile und Kameradisplay übereinstimmend ISO AUTO, f/8 und 1/125 s. In der App waren auch Serienaufnahme und Weißabgleich sichtbar. Nach der Wahl von ISO 400 am Handy zeigten beide Geräte ISO 400. Nach Beenden der Fernsteuerung zeigte die eingeschaltete Kamera weiterhin ISO 400. Für diesen letzten Vergleich wurde ausschließlich ISO abgelesen.
 
 **2. Optional ein erstes Preset ohne PC registrieren.** Für einen späteren Schreibversuch eine separate Testkarte mit freiem **M1** verwenden. Ausgangswerte notieren. In Imaging Edge Mobile bei f/8 und 1/125 s feste ISO 400 wählen, Werte vergleichen und die WLAN-Fernsteuerung beenden. Zeigt die Kamera die Werte weiterhin an, über **MENU → Kameraeinstlg.1 → Speicher → M1** registrieren. In M anschließend ISO 800 einstellen, das Moduswahlrad auf **MR** drehen und M1 abrufen. ISO 400, f/8 und 1/125 s am Display würden den Ablauf „Handy einstellt, Kamera speichert“ bestätigen.
 
